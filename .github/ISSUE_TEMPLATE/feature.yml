@@ -1,0 +1,57 @@
+name: Feature
+description: A concrete implementation task
+title: "[Feature] "
+labels: ["type: feature"]
+body:
+  - type: input
+    id: what
+    attributes:
+      label: What
+      description: One sentence. What needs to exist that doesn't yet.
+      placeholder: e.g. Implement TransactionWriteService with SERIALIZABLE isolation
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why does this exist? Which architectural pattern or concept does it implement?
+      placeholder: e.g. This is the core write path in the CQRS split. Every financial safety property depends on this being correct.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Layer
+      options:
+        - domain
+        - persistence
+        - kafka
+        - api
+        - security
+        - infrastructure
+    validations:
+      required: true
+
+  - type: textarea
+    id: ac
+    attributes:
+      label: Acceptance Criteria
+      description: Concrete, checkable conditions. Each one must be verifiable before closing.
+      value: |
+        - [ ] 
+        - [ ] 
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: ADR candidate, gotchas, links, dependencies on other issues. Optional.
+      placeholder: e.g. ADR candidate — why SERIALIZABLE over REPEATABLE READ. Blocked by #12.
+    validations:
+      required: false
