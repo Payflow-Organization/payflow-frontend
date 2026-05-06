@@ -1,5 +1,12 @@
 import axios from "axios";
-import { clearTokens, getAccessToken } from "./session";
+import type { AuthResponse } from "@/lib/types";
+import {
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+  saveTokens,
+} from "./session";
+
 const client = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   withCredentials: true,
@@ -20,7 +27,11 @@ client.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true;
       try {
-        await client.post("/auth/refresh");
+        const refreshToken = getRefreshToken();
+        const res = await client.post<AuthResponse>("/auth/refresh", {
+          refreshToken,
+        });
+        saveTokens(res.data.accessToken, res.data.refreshToken);
         return client(original);
       } catch {
         clearTokens();
