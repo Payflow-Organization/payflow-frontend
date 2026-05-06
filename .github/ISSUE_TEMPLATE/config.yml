@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Architecture Decisions
+    url: https://github.com/lakiidev/payflow-backend/tree/main/docs/adr
+    about: Check existing ADRs before opening an issue that involves a major architectural decision.

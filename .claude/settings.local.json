@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(jar tf *)",
+      "Bash(jar xf *)",
+      "Read(//tmp/**)",
+      "Bash(xargs cat *)",
+      "Bash(grep -iv \"class\\\\$\")",
+      "Bash(xargs -I{} sh -c 'mkdir -p /tmp/tck && jar xf \"{}\" -C /tmp/tck 2>/dev/null')",
+      "Bash(mvn dependency:tree -Dincludes=tools.jackson)",
+      "Bash(./mvnw dependency:tree)"
+    ]
+  }
+}

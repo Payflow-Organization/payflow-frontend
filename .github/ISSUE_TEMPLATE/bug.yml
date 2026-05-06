@@ -1,0 +1,88 @@
+name: Bug
+description: Something is broken or behaving incorrectly
+title: "[Bug] "
+labels: ["type: bug"]
+body:
+  - type: input
+    id: what
+    attributes:
+      label: What is broken
+      description: One sentence. What is wrong.
+      placeholder: e.g. Duplicate transfer created when identical idempotency key sent twice
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to Reproduce
+      value: |
+        1. 
+        2. 
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      description: What should happen.
+      placeholder: e.g. Second request with same idempotency key returns the existing transaction, no new DB row created.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+      description: What actually happens.
+      placeholder: e.g. Second request creates a second transaction row, balance decremented twice.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Layer
+      options:
+        - domain
+        - persistence
+        - kafka
+        - api
+        - security
+        - infrastructure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - critical (data corruption / financial incorrectness)
+        - high (feature broken, no workaround)
+        - medium (feature broken, workaround exists)
+        - low (cosmetic / minor)
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Relevant logs, stack traces, or test output. Optional but helpful.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: ac
+    attributes:
+      label: Fix Verified When
+      description: How will you confirm this is fixed?
+      value: |
+        - [ ] 
+        - [ ]
+    validations:
+      required: true

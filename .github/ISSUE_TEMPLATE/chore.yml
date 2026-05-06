@@ -1,0 +1,57 @@
+name: Chore
+description: Infrastructure, config, tooling, or maintenance — no business logic
+title: "[Chore] "
+labels: ["type: chore"]
+body:
+  - type: input
+    id: what
+    attributes:
+      label: What
+      description: One sentence. What needs to be set up or configured.
+      placeholder: e.g. Add Jacoco coverage gate to CI pipeline
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: Why does this need to exist? What breaks or stays manual without it?
+      placeholder: e.g. Without a coverage gate, coverage can silently drop below 80% on any push without anyone noticing.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - ci/cd
+        - docker
+        - config
+        - dependencies
+        - tooling
+        - documentation
+        - refactor
+    validations:
+      required: true
+
+  - type: textarea
+    id: ac
+    attributes:
+      label: Acceptance Criteria
+      description: Concrete, verifiable conditions. Chores must have a clear definition of done.
+      value: |
+        - [ ] 
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Links, references, commands, or anything else relevant. Optional.
+      placeholder: e.g. Reference — section 13 of implementation guide for exact pom.xml config.
+    validations:
+      required: false

@@ -1,0 +1,61 @@
+name: Research
+description: A learning or investigation task that must be completed before implementation
+title: "[Research] "
+labels: ["type: research"]
+body:
+  - type: input
+    id: what
+    attributes:
+      label: What
+      description: One sentence. What needs to be understood or investigated.
+      placeholder: e.g. Understand Kafka consumer group rebalancing before implementing consumers
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: What implementation decision does this unblock? What goes wrong if you skip it?
+      placeholder: e.g. Without understanding rebalancing, offset commit strategy will be wrong and events will be lost or double-processed.
+    validations:
+      required: true
+
+  - type: input
+    id: resources
+    attributes:
+      label: Resources
+      description: Specific chapters, articles, or docs to read. Be exact — not just "the Kafka docs".
+      placeholder: e.g. Kafka Definitive Guide Ch.4 (Consumers), martinfowler.com/CQRS article
+    validations:
+      required: true
+
+  - type: textarea
+    id: done
+    attributes:
+      label: Done When
+      description: Questions you must be able to answer from memory before closing this issue.
+      value: |
+        - [ ] Can explain: 
+        - [ ] Can explain: 
+        - [ ] Can explain:
+    validations:
+      required: true
+
+  - type: input
+    id: unblocks
+    attributes:
+      label: Unblocks
+      description: Which feature issue does this research unblock? Link it.
+      placeholder: e.g. Unblocks #14 — Implement Kafka consumers
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: ADR candidate if this research leads to a major architectural decision. Optional.
+      placeholder: e.g. ADR candidate — why manual offset commit over auto-commit.
+    validations:
+      required: false
