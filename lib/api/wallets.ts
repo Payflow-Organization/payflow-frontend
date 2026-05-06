@@ -12,6 +12,11 @@ export async function getWallets(): Promise<Wallet[]> {
   return res.data;
 }
 
+export async function getWallet(id: string): Promise<Wallet> {
+  const res = await client.get<Wallet>(`/wallets/${id}`);
+  return res.data;
+}
+
 export async function getBalance(walletId: string): Promise<BalanceResponse> {
   const res = await client.get<BalanceResponse>(`/wallets/${walletId}/balance`);
   return res.data;
