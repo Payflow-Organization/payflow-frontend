@@ -17,13 +17,6 @@ export async function getBalance(walletId: string): Promise<BalanceResponse> {
   return res.data;
 }
 
-export async function getWalletBalance(
-  walletId: string,
-): Promise<BalanceResponse> {
-  const res = await client.get<BalanceResponse>(`/wallets/${walletId}/balance`);
-  return res.data;
-}
-
 export async function createWallet(data: CreateWalletRequest): Promise<Wallet> {
   const res = await client.post<Wallet>("/wallets", data);
   return res.data;
