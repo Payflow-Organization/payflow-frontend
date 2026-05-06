@@ -27,8 +27,9 @@ export async function getWalletStatement(
   from: string,
   to: string,
 ): Promise<PaginatedResponse<TransactionView>> {
+  const params = new URLSearchParams({ from, to });
   const res = await client.get<PaginatedResponse<TransactionView>>(
-    `/wallets/${id}/statement?from=${from}&to=${to}`,
+    `/wallets/${id}/statement?${params.toString()}`,
   );
   return res.data;
 }
