@@ -1,6 +1,5 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import React from "react";
 import { getMe, login, logout, register } from "../api/auth";
 import { useRouter } from "next/navigation";
 import { LoginRequest, RegisterRequest } from "../types";
