@@ -1,9 +1,9 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
-import { getMe, login, logout } from "../api/auth";
+import { getMe, login, logout, register } from "../api/auth";
 import { useRouter } from "next/navigation";
-import { LoginRequest } from "../types";
+import { LoginRequest, RegisterRequest } from "../types";
 
 export function useMe() {
   return useQuery({
@@ -31,7 +31,7 @@ export function useRegister() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: LoginRequest) => login(data),
+    mutationFn: (data: RegisterRequest) => register(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["me"] });
       router.push("/dashboard");
