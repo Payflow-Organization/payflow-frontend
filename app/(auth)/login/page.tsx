@@ -21,7 +21,10 @@ import { AxiosError } from "axios";
 
 const formSchema = z.object({
   email: z.email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/\d/, "Password must include at least one number"),
 });
 
 export default function Page() {
@@ -42,7 +45,7 @@ export default function Page() {
   const router = useRouter();
 
   return (
-    <div className="w-full p-5! space-y-12">
+    <div className="w-full !p-5 space-y-12">
       <CardHeader className="text-center">
         <CardTitle className="font-semibold text-3xl">Welcome Back</CardTitle>
         <CardDescription className="font-normal text-base">
