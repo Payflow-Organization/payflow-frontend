@@ -26,7 +26,9 @@ function getQueryClient() {
     return browserQueryClient;
   }
 }
-
+if (process.env.NODE_ENV === "development") {
+  import("@/mocks").then(({ initMocks }) => initMocks());
+}
 export default function Providers({
   children,
 }: Readonly<{
