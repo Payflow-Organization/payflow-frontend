@@ -41,7 +41,7 @@ export default function Page() {
   const router = useRouter();
 
   return (
-    <div className="w-full p-5! space-y-12">
+    <div className="w-full !p-5 space-y-12">
       <CardHeader className="text-center">
         <CardTitle className="font-semibold text-3xl">Welcome Back</CardTitle>
         <CardDescription className="font-normal text-base">
