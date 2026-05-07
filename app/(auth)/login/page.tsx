@@ -17,6 +17,7 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLogin } from "@/lib/hooks/use-auth";
+import { AxiosError } from "axios";
 
 const formSchema = z.object({
   email: z.email("Invalid email address"),
@@ -107,8 +108,9 @@ export default function Page() {
           />
           {error && (
             <p className="text-sm text-destructive">
-              {(error as { message?: string })?.message ??
-                "Invalid credentials"}
+              {error instanceof AxiosError
+                ? (error.response?.data?.message ?? "Invalid credentials")
+                : "Something went wrong"}
             </p>
           )}
           <Button

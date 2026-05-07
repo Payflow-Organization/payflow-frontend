@@ -16,6 +16,7 @@ import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRegister } from "@/lib/hooks/use-auth";
+import { AxiosError } from "axios";
 
 const formSchema = z
   .object({
@@ -166,8 +167,9 @@ export default function Page() {
           />
           {error && (
             <p className="text-sm text-destructive">
-              {(error as { message?: string })?.message ??
-                "Registration failed"}
+              {error instanceof AxiosError
+                ? (error.response?.data?.message ?? "Invalid credentials")
+                : "Something went wrong"}
             </p>
           )}
           <Button

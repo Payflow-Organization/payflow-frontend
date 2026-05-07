@@ -4,8 +4,6 @@ export type TransactionType = "DEPOSIT" | "WITHDRAW" | "TRANSFER";
 export type EntryType = "DEBIT" | "CREDIT";
 
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
   email: string;
 }
 
