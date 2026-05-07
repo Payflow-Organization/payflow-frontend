@@ -20,7 +20,10 @@ import { useLogin } from "@/lib/hooks/use-auth";
 
 const formSchema = z.object({
   email: z.email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/\d/, "Password must include at least one number"),
 });
 
 export default function Page() {
