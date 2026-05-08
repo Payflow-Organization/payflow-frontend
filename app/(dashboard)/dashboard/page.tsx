@@ -40,7 +40,7 @@ export default function Page() {
   const isLoading = isWalletsLoading || isSpendingLoading;
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-6">
       {/* Row 1 - Stat Cards */}
       <div className="grid grid-cols-3 gap-6">
         <StatCard
