@@ -1,5 +1,5 @@
 "use client";
-import { ArrowRightLeft, LogOut, PlusCircle } from "lucide-react";
+import { ArrowRightLeft, Landmark, LogOut, PlusCircle } from "lucide-react";
 import { IconLayoutDashboard } from "@tabler/icons-react";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
@@ -10,9 +10,18 @@ import { useWallets } from "@/lib/hooks/use-wallet";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
-  { href: "/dashboard", icon: <IconLayoutDashboard stroke={2} />, label: "Dashboard" },
+  {
+    href: "/dashboard",
+    icon: <IconLayoutDashboard stroke={2} />,
+    label: "Dashboard",
+  },
+  { href: "/banking", icon: <Landmark />, label: "Banking" },
   { href: "/analytics", icon: <TimelineOutlinedIcon />, label: "Analytics" },
-  { href: "/transactions", icon: <ReceiptLongOutlinedIcon />, label: "Transactions" },
+  {
+    href: "/transactions",
+    icon: <ReceiptLongOutlinedIcon />,
+    label: "Transactions",
+  },
 ];
 
 function Sidebar() {

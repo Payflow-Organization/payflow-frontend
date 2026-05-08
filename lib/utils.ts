@@ -22,7 +22,7 @@ export function formatCurrencyCompact(amountInCents: number, currency: string) {
 }
 
 export function formatDate(iso: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("en-GB", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(iso));

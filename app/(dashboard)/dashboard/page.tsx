@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  useBalanceHistory,
-  useMonthlySummary,
-  useSpendingByCategory,
-} from "@/lib/hooks/use-analytics";
+import { useSpendingByCategory } from "@/lib/hooks/use-analytics";
 import { useWallets } from "@/lib/hooks/use-wallet";
 import { useSearchParams } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
