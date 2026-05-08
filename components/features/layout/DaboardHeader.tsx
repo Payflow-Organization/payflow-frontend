@@ -96,7 +96,9 @@ function DashboardHeader() {
         <li className="text-[#6B7280]">
           <CircleHelp />
         </li>
-        <hr className="h-6 w-px bg-border border-none" />
+        <li>
+          <hr className="h-6 w-px bg-border border-none" />
+        </li>
         <li className="text-[#6B7280]">Profile</li>
       </ul>
     </header>
