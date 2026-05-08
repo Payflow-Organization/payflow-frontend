@@ -56,10 +56,10 @@ function Sidebar() {
       <div className="px-6">
         <hr className="border-border my-4" />
       </div>
+      <p className="px-8 uppercase font-normal text-[10px] text-muted-foreground">
+        Quick actions
+      </p>
       <ul className="px-8 flex flex-col gap-3">
-        <p className="uppercase font-normal text-[10px] text-muted-foreground">
-          Quick actions
-        </p>
         <li>
           <Button variant="default" className="w-full rounded-3xl min-h-11">
             <PlusCircle />
