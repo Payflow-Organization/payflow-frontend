@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = 'force-dynamic';
+
 import { useSpendingByCategory } from "@/lib/hooks/use-analytics";
 import { useWallets } from "@/lib/hooks/use-wallet";
 import { useSearchParams } from "next/navigation";
