@@ -1,0 +1,83 @@
+"use client";
+import { ArrowRightLeft, LogOut, PlusCircle } from "lucide-react";
+import { IconLayoutDashboard } from "@tabler/icons-react";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
+import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
+import { usePathname, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useLogout } from "@/lib/hooks/use-auth";
+import { useWallets } from "@/lib/hooks/use-wallet";
+import { Button } from "@/components/ui/button";
+
+const navLinks = [
+  { href: "/dashboard", icon: <IconLayoutDashboard stroke={2} />, label: "Dashboard" },
+  { href: "/analytics", icon: <TimelineOutlinedIcon />, label: "Analytics" },
+  { href: "/transactions", icon: <ReceiptLongOutlinedIcon />, label: "Transactions" },
+];
+
+function Sidebar() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { data: wallets } = useWallets();
+  const { mutate: logout } = useLogout();
+
+  const walletId = searchParams.get("walletId") ?? wallets?.[0]?.id;
+  const walletQuery = walletId ? `?walletId=${walletId}` : "";
+
+  return (
+    <nav className="max-w-64 w-full h-full border-r border-border py-6 flex flex-col">
+      <h1 className="text-primary font-bold text-lg px-8">Payflow</h1>
+      <ul className="mt-10 flex flex-col gap-1 text-[#6B7280] [&>li]:h-12 [&>li]:flex [&>li]:items-center">
+        {navLinks.map(({ href, icon, label }) => (
+          <li
+            key={href}
+            data-active={pathname === href}
+            className="rounded-lg mr-4 hover:bg-primary/5 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+          >
+            <Link
+              href={`${href}${walletQuery}`}
+              className="flex items-center gap-3 w-full h-full px-8"
+            >
+              {icon}
+              {label}
+            </Link>
+          </li>
+        ))}
+        <li className="h-12 flex items-center rounded-lg text-[#6B7280] hover:text-destructive cursor-pointer">
+          <button
+            onClick={() => logout()}
+            className="flex items-center gap-3 w-full px-8"
+          >
+            <LogOut size={20} />
+            Logout
+          </button>
+        </li>
+      </ul>
+      <div className="px-6">
+        <hr className="border-border my-4" />
+      </div>
+      <ul className="px-8 flex flex-col gap-3">
+        <p className="uppercase font-normal text-[10px] text-muted-foreground">
+          Quick actions
+        </p>
+        <li>
+          <Button variant="default" className="w-full rounded-3xl min-h-11">
+            <PlusCircle />
+            Deposit
+          </Button>
+        </li>
+        <li>
+          <Button
+            variant="outline"
+            className="w-full rounded-3xl min-h-11 text-primary"
+          >
+            <ArrowRightLeft />
+            Transfer
+          </Button>
+        </li>
+      </ul>
+    </nav>
+  );
+}
+
+export default Sidebar;
