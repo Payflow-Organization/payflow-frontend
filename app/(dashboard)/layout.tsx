@@ -1,4 +1,4 @@
-import DashboardHeader from "@/components/features/layout/DaboardHeader";
+import DashboardHeader from "@/components/features/layout/DashboardHeader";
 import Sidebar from "@/components/features/layout/Sidebar";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
