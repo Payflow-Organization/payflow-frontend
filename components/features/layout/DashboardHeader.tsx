@@ -30,9 +30,8 @@ function DashboardHeader() {
   const { data: wallets } = useWallets();
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const walletIdParam = searchParams.get("walletId");
-  const active = wallets?.find((w) => w.id === walletIdParam) ?? wallets?.[0];
+  const walletId = useSearchParams().get("walletId");
+  const active = wallets?.find((w) => w.id === walletId) ?? wallets?.[0];
 
   return (
     <header className="flex justify-between items-center w-full px-8 py-2.5 min-h-16 border-b border-border">

@@ -68,7 +68,7 @@ function Sidebar() {
       <p className="px-8 uppercase font-normal text-[10px] text-muted-foreground">
         Quick actions
       </p>
-      <ul className="px-8 flex flex-col gap-3">
+      <ul className="px-8 flex flex-col gap-3 mt-3">
         <li>
           <Button variant="default" className="w-full rounded-3xl min-h-11">
             <PlusCircle />
