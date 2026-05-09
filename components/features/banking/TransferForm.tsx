@@ -17,16 +17,32 @@ import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const PRESET_AMOUNTS = [1000, 5000, 10000];
+const MAX_TRANSFER_AMOUNT_CENTS = 100_000_000;
 
-const transferSchema = z.object({
-  sourceWalletId: z.string().min(1, "Please select a source wallet"),
-  amountCents: z
-    .number()
-    .int("Amount must be a whole number of cents")
-    .positive("Amount must be greater than 0"),
-  destinationType: z.enum(["own", "other"]),
-  destinationWalletId: z.string().min(1, "Please select a destination"),
-});
+const transferSchema = z
+  .object({
+    sourceWalletId: z
+      .string()
+      .min(1, "Please select a source wallet")
+      .uuid("Please select a valid source wallet"),
+    amountCents: z
+      .number()
+      .int("Amount must be a whole number of cents")
+      .positive("Amount must be greater than 0")
+      .max(
+        MAX_TRANSFER_AMOUNT_CENTS,
+        `Amount must be less than or equal to ${formatCurrency(MAX_TRANSFER_AMOUNT_CENTS)}`,
+      ),
+    destinationType: z.enum(["own", "other"]),
+    destinationWalletId: z
+      .string()
+      .min(1, "Please select a destination")
+      .uuid("Please select a valid destination wallet"),
+  })
+  .refine((data) => data.sourceWalletId !== data.destinationWalletId, {
+    message: "Source and destination wallets must be different",
+    path: ["destinationWalletId"],
+  });
 
 type TransferFormValues = z.infer<typeof transferSchema>;
 
