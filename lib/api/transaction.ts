@@ -8,11 +8,19 @@ import type {
 } from "@/lib/types";
 
 export async function getTransactions(
-  page: number,
-  size: number,
+  walletId: string | undefined,
+  params: { page: number; size: number; type?: string; status?: string },
 ): Promise<PaginatedResponse<Transaction>> {
+  const query = new URLSearchParams({
+    page: String(params.page),
+    size: String(params.size),
+  });
+  if (walletId) query.set("walletId", walletId);
+  if (params.type) query.set("type", params.type);
+  if (params.status) query.set("status", params.status);
+
   const res = await client.get<PaginatedResponse<Transaction>>(
-    `/transactions?page=${page}&size=${size}`,
+    `/transactions?${query}`,
   );
   return res.data;
 }

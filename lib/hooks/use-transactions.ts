@@ -7,16 +7,20 @@ import type {
   WithdrawRequest,
 } from "@/lib/types";
 import {
-  createDeposit,
-  createTransfer,
-  createWithdraw,
-  getTransactions,
-} from "../api/transaction";
+  mockGetTransactions,
+  mockCreateDeposit,
+  mockCreateWithdraw,
+  mockCreateTransfer,
+} from "../mocks/transaction";
 
-export function useTransactions(page: number) {
+export function useTransactions(
+  walletId: string,
+  params: { page: number; size: number; type?: string; status?: string },
+) {
   return useQuery({
-    queryKey: ["transactions", page],
-    queryFn: () => getTransactions(page, 20),
+    queryKey: ["transactions", walletId, params],
+    queryFn: () => mockGetTransactions(walletId, params),
+    enabled: !!walletId,
   });
 }
 
@@ -24,8 +28,7 @@ export function useCreateDeposit() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Omit<DepositRequest, "idempotencyKey">) =>
-      createDeposit({ ...data, idempotencyKey: crypto.randomUUID() }),
+    mutationFn: (data: DepositRequest) => mockCreateDeposit(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
@@ -37,8 +40,7 @@ export function useCreateWithdrawal() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Omit<WithdrawRequest, "idempotencyKey">) =>
-      createWithdraw({ ...data, idempotencyKey: crypto.randomUUID() }),
+    mutationFn: (data: WithdrawRequest) => mockCreateWithdraw(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
@@ -50,8 +52,7 @@ export function useCreateTransfer() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Omit<TransferRequest, "idempotencyKey">) =>
-      createTransfer({ ...data, idempotencyKey: crypto.randomUUID() }),
+    mutationFn: (data: TransferRequest) => mockCreateTransfer(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
