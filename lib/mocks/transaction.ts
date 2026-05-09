@@ -96,12 +96,19 @@ export async function mockGetSpendingByCategory(
   }));
 }
 
+function insertIntoPool(walletId: string, tx: Transaction) {
+  if (!transactionPool.has(walletId)) {
+    transactionPool.set(walletId, generatePool(walletId));
+  }
+  transactionPool.get(walletId)!.unshift(tx);
+}
+
 export async function mockCreateDeposit(
   data: DepositRequest,
 ): Promise<Transaction> {
   await new Promise((resolve) => setTimeout(resolve, 900));
 
-  return {
+  const tx: Transaction = {
     id: crypto.randomUUID(),
     fromWalletId: null,
     toWalletId: data.toWalletId,
@@ -111,6 +118,8 @@ export async function mockCreateDeposit(
     status: "SUCCESS",
     createdAt: new Date().toISOString(),
   };
+  insertIntoPool(data.toWalletId, tx);
+  return tx;
 }
 
 export async function mockCreateWithdraw(
@@ -118,7 +127,7 @@ export async function mockCreateWithdraw(
 ): Promise<Transaction> {
   await new Promise((resolve) => setTimeout(resolve, 900));
 
-  return {
+  const tx: Transaction = {
     id: crypto.randomUUID(),
     fromWalletId: data.fromWalletId,
     toWalletId: null,
@@ -128,6 +137,8 @@ export async function mockCreateWithdraw(
     status: "SUCCESS",
     createdAt: new Date().toISOString(),
   };
+  insertIntoPool(data.fromWalletId, tx);
+  return tx;
 }
 
 export async function mockCreateTransfer(
@@ -135,7 +146,7 @@ export async function mockCreateTransfer(
 ): Promise<Transaction> {
   await new Promise((resolve) => setTimeout(resolve, 900));
 
-  return {
+  const tx: Transaction = {
     id: crypto.randomUUID(),
     fromWalletId: data.fromWalletId,
     toWalletId: data.toWalletId,
@@ -145,4 +156,6 @@ export async function mockCreateTransfer(
     status: "SUCCESS",
     createdAt: new Date().toISOString(),
   };
+  insertIntoPool(data.fromWalletId, tx);
+  return tx;
 }

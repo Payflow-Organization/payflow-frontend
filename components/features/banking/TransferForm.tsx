@@ -37,6 +37,7 @@ function TransferFormInner({ initialWalletId }: { initialWalletId: string }) {
   const [destinationType, setDestinationType] = useState<"own" | "other">(
     "own",
   );
+
   const transfer = useCreateTransfer();
 
   const form = useForm<TransferFormValues>({
@@ -394,5 +395,10 @@ export default function TransferForm({ walletId }: { walletId: string }) {
 
   const initialWalletId = walletId || wallets?.[0]?.id || "";
 
-  return <TransferFormInner key={initialWalletId} initialWalletId={initialWalletId} />;
+  return (
+    <TransferFormInner
+      key={initialWalletId}
+      initialWalletId={initialWalletId}
+    />
+  );
 }

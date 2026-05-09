@@ -59,7 +59,7 @@ export default function TransactionsPage() {
             Export CSV
           </Button>
           <Button asChild className="gap-2">
-            <Link href="/banking?tab=deposit">
+            <Link href={`/banking?walletId=${walletId}&tab=deposit`}>
               <Plus size={16} />
               New Transaction
             </Link>
