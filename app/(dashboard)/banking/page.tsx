@@ -4,9 +4,17 @@ import TransferForm from "@/components/features/banking/TransferForm";
 import WithdrawForm from "@/components/features/banking/WithdrawForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "next/navigation";
-import React from "react";
+import { Suspense } from "react";
 
-function Page() {
+export default function Page() {
+  return (
+    <Suspense>
+      <BankingContent />
+    </Suspense>
+  );
+}
+
+function BankingContent() {
   const walletId = useSearchParams().get("walletId") ?? "";
   const tab = useSearchParams().get("tab") ?? "deposit";
 
@@ -38,5 +46,3 @@ function Page() {
     </div>
   );
 }
-
-export default Page;
