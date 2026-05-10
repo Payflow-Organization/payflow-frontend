@@ -4,8 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getBalanceHistory,
   getMonthlySummary,
-  getSpendingByCategory,
 } from "@/lib/api/analytics";
+import { mockGetSpendingByCategory } from "@/lib/mocks/transaction";
+import type { SpendingByCategory } from "@/lib/types";
 
 const ANALYTICS_STALE_TIME = 5 * 60 * 1000;
 
@@ -41,8 +42,21 @@ export function useSpendingByCategory(
 ) {
   return useQuery({
     queryKey: ["analytics", "spending", walletId, from, to],
-    queryFn: () => getSpendingByCategory(walletId, from, to),
-    enabled: !!walletId && !!from && !!to,
+    queryFn: () => mockGetSpendingByCategory(walletId),
+    enabled: !!walletId,
     staleTime: ANALYTICS_STALE_TIME,
   });
+}
+
+export function useAllTimeSummary(walletId: string) {
+  const { data, isLoading } = useSpendingByCategory(walletId, "2000-01-01", new Date().toISOString().slice(0, 10));
+
+  const inflowCents = data?.find((s) => s.transactionType === "DEPOSIT")?.totalCents ?? 0;
+  const outflowCents =
+    (data?.find((s) => s.transactionType === "WITHDRAW")?.totalCents ?? 0) +
+    (data?.find((s) => s.transactionType === "TRANSFER")?.totalCents ?? 0);
+  const netCents = inflowCents - outflowCents;
+  const currency = "GBP";
+
+  return { inflowCents, outflowCents, netCents, currency, isLoading };
 }

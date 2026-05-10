@@ -57,13 +57,13 @@
   --popover-foreground: oklch(0.148 0.004 228.8);
   --primary: #00685f;
   --primary-foreground: oklch(0.979 0.021 166.113);
-  --secondary: oklch(0.967 0.001 286.375);
+  --secondary: #f0f3ff;
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: #575e70;
   --muted-foreground: #3d4947;
   --accent: #f9f9ff;
   --accent-foreground: #fafafa;
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: #f87171;
   --border: #e5e5e5;
   --input: oklch(0.925 0.005 214.3);
   --ring: oklch(0.723 0.014 214.4);

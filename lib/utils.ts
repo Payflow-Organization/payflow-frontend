@@ -11,12 +11,22 @@ export function formatCurrency(amountInCents: number, currency: string) {
     currency,
   }).format(amountInCents / 100);
 }
+export function formatCurrencyCompact(
+  amountInCents?: number,
+  currency: string = "GBP",
+) {
+  if (amountInCents === undefined) {
+    return new Intl.NumberFormat("en-GB", { style: "currency", currency })
+      .format(0)
+      .replace(/[\d.,\s]+/, "")
+      .trim();
+  }
 
-export function formatCurrencyCompact(amountInCents: number, currency: string) {
   return new Intl.NumberFormat("en-GB", {
     style: "currency",
     currency,
     notation: "compact",
+    minimumFractionDigits: 0,
     maximumFractionDigits: 1,
   }).format(amountInCents / 100);
 }

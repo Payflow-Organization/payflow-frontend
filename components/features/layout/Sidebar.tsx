@@ -3,7 +3,7 @@ import { ArrowRightLeft, Landmark, LogOut, PlusCircle } from "lucide-react";
 import { IconLayoutDashboard } from "@tabler/icons-react";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useLogout } from "@/lib/hooks/use-auth";
 import { useWallets } from "@/lib/hooks/use-wallet";
@@ -32,6 +32,7 @@ function Sidebar() {
 
   const walletId = searchParams.get("walletId") ?? wallets?.[0]?.id;
   const walletQuery = walletId ? `?walletId=${walletId}` : "";
+  const router = useRouter();
 
   return (
     <nav className="max-w-64 w-full h-full border-r border-border py-6 flex flex-col">
@@ -70,7 +71,13 @@ function Sidebar() {
       </p>
       <ul className="px-8 flex flex-col gap-3 mt-3">
         <li>
-          <Button variant="default" className="w-full rounded-3xl min-h-11">
+          <Button
+            variant="default"
+            className="w-full rounded-3xl min-h-11"
+            onClick={() =>
+              router.push(`/banking?walletId=${walletId}&tab=deposit`)
+            }
+          >
             <PlusCircle />
             Deposit
           </Button>
@@ -79,6 +86,9 @@ function Sidebar() {
           <Button
             variant="outline"
             className="w-full rounded-3xl min-h-11 text-primary"
+            onClick={() =>
+              router.push(`/banking?walletId=${walletId}&tab=transfer`)
+            }
           >
             <ArrowRightLeft />
             Transfer
