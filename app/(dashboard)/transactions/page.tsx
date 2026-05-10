@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useTransactions } from "@/lib/hooks/use-transactions";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,14 @@ import { TransactionSummaryCards } from "@/components/features/transactions/Tran
 const PAGE_SIZE = 10;
 
 export default function TransactionsPage() {
+  return (
+    <Suspense>
+      <TransactionsContent />
+    </Suspense>
+  );
+}
+
+function TransactionsContent() {
   const walletId = useSearchParams().get("walletId") ?? "";
 
   const [page, setPage] = useState(0);
