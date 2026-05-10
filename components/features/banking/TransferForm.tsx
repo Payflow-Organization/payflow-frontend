@@ -19,33 +19,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const PRESET_AMOUNTS = [1000, 5000, 10000];
 const MAX_TRANSFER_AMOUNT_CENTS = 100_000_000;
 
-const transferSchema = z
-  .object({
-    sourceWalletId: z
-      .string()
-      .min(1, "Please select a source wallet")
-      .uuid("Please select a valid source wallet"),
-    amountCents: z
-      .number()
-      .int("Amount must be a whole number of cents")
-      .positive("Amount must be greater than 0")
-      .max(
-        MAX_TRANSFER_AMOUNT_CENTS,
-        `Amount must be less than or equal to ${formatCurrency(MAX_TRANSFER_AMOUNT_CENTS)}`,
-      ),
-    destinationType: z.enum(["own", "other"]),
-    destinationWalletId: z
-      .string()
-      .min(1, "Please select a destination")
-      .uuid("Please select a valid destination wallet"),
-  })
-  .refine((data) => data.sourceWalletId !== data.destinationWalletId, {
-    message: "Source and destination wallets must be different",
-    path: ["destinationWalletId"],
-  });
-
-type TransferFormValues = z.infer<typeof transferSchema>;
-
 function TransferFormInner({ initialWalletId }: { initialWalletId: string }) {
   const { data: wallets } = useWallets();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -55,7 +28,35 @@ function TransferFormInner({ initialWalletId }: { initialWalletId: string }) {
   );
 
   const transfer = useCreateTransfer();
+  const transferSchema = z
+    .object({
+      sourceWalletId: z
+        .string()
+        .min(1, "Please select a source wallet")
+        .uuid("Please select a valid source wallet"),
+      amountCents: z
+        .number()
+        .int("Amount must be a whole number of cents")
+        .positive("Amount must be greater than 0")
+        .max(
+          MAX_TRANSFER_AMOUNT_CENTS,
+          `Amount must be less than or equal to ${formatCurrency(
+            MAX_TRANSFER_AMOUNT_CENTS,
+            wallets?.find((w) => w.id === initialWalletId)?.currency ?? "GBP",
+          )}`,
+        ),
+      destinationType: z.enum(["own", "other"]),
+      destinationWalletId: z
+        .string()
+        .min(1, "Please select a destination")
+        .uuid("Please select a valid destination wallet"),
+    })
+    .refine((data) => data.sourceWalletId !== data.destinationWalletId, {
+      message: "Source and destination wallets must be different",
+      path: ["destinationWalletId"],
+    });
 
+  type TransferFormValues = z.infer<typeof transferSchema>;
   const form = useForm<TransferFormValues>({
     resolver: zodResolver(transferSchema),
     mode: "onChange",
