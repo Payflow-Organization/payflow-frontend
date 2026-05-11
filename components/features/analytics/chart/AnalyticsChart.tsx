@@ -152,9 +152,9 @@ export function AnalyticsChart({
     () =>
       current.map((point, i) => ({
         label: buildLabel(point, interval, current),
-        // Convert cents → whole currency units for y-axis
-        value: Math.round(point.lastBalanceCents / 100),
-        prev: previous[i] ? Math.round(previous[i].lastBalanceCents / 100) : 0,
+        // Convert cents → currency units while preserving sub-unit precision
+        value: point.lastBalanceCents / 100,
+        prev: previous[i] ? previous[i].lastBalanceCents / 100 : 0,
       })),
     [current, previous, interval],
   );
