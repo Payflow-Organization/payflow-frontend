@@ -30,6 +30,10 @@ import {
 } from "@/components/ui/table";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { SpendingByCategory, TransactionType } from "@/lib/types";
+import {
+  downloadStatementCSV,
+  downloadStatementPDF,
+} from "@/lib/api/analytics";
 
 type Status = "Stable" | "Neutral" | "Warning";
 
@@ -126,35 +130,23 @@ function buildRows(
   }).filter((r): r is ComputedRow => r !== null);
 }
 
-function downloadCSV(rows: ComputedRow[]) {
-  const header = "Type,Volume,Allocation,Status\n";
-  const body = rows
-    .map((r) => `${r.type},${r.volume},${r.allocation}%,${r.status}`)
-    .join("\n");
-  const blob = new Blob([header + body], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "transaction-breakdown.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function downloadPDF() {
-  // Wire up a PDF library (e.g. jsPDF) when added to the project.
-  alert("PDF export coming soon.");
-}
 
 interface TransactionBreakdownProps {
   spending: SpendingByCategory[];
   currency: string;
   isLoading?: boolean;
+  walletId: string;
+  from: string;
+  to: string;
 }
 
 export function TransactionBreakdown({
   spending,
   currency,
   isLoading,
+  walletId,
+  from,
+  to,
 }: TransactionBreakdownProps) {
   const rows = buildRows(spending, currency);
 
@@ -178,11 +170,11 @@ export function TransactionBreakdown({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem onClick={() => downloadCSV(rows)}>
+              <DropdownMenuItem onClick={() => downloadStatementCSV(walletId, from, to)}>
                 <FileText className="h-3.5 w-3.5 mr-2" />
                 CSV
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={downloadPDF}>
+              <DropdownMenuItem onClick={() => downloadStatementPDF(walletId, from, to)}>
                 <FileDown className="h-3.5 w-3.5 mr-2" />
                 PDF
               </DropdownMenuItem>

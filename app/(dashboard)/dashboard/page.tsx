@@ -44,7 +44,7 @@ function DashboardContent() {
   const allTimeFrom = activeWallet?.createdAt.split("T")[0] ?? "1970-01-01";
 
   const { data: spending, isLoading: isSpendingLoading } =
-    useSpendingByCategory(walletId, allTimeFrom, today);
+    useSpendingByCategory(resolvedWalletId, allTimeFrom, today);
   const totalDeposits =
     spending?.find((s) => s.transactionType === "DEPOSIT")?.totalCents ?? 0;
   const totalWithdrawals =

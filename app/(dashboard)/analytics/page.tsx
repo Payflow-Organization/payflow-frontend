@@ -210,6 +210,9 @@ function AnalyticsContent() {
         spending={spending}
         currency={currency}
         isLoading={isSpendingLoading}
+        walletId={resolvedWalletId}
+        from={fromStr}
+        to={toStr}
       />
     </div>
   );
