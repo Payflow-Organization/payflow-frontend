@@ -1,6 +1,9 @@
 "use client";
 
-import { useSpendingByCategory, useMonthlySummary } from "@/lib/hooks/use-analytics";
+import {
+  useSpendingByCategory,
+  useMonthlySummary,
+} from "@/lib/hooks/use-analytics";
 import { useWallets } from "@/lib/hooks/use-wallet";
 import { useRecentTransactions } from "@/lib/hooks/use-transactions";
 import { useSearchParams } from "next/navigation";
@@ -34,19 +37,29 @@ export default function Page() {
 function DashboardContent() {
   const walletId = useSearchParams().get("walletId") ?? "";
   const { data: wallets, isLoading: isWalletsLoading } = useWallets();
-  const { data: spending, isLoading: isSpendingLoading } = useSpendingByCategory(walletId, allTimeFrom, today);
 
   const activeWallet = wallets?.find((w) => w.id === walletId) ?? wallets?.[0];
   const resolvedWalletId = walletId || (activeWallet?.id ?? "");
   const currency = activeWallet?.currency ?? "GBP";
   const allTimeFrom = activeWallet?.createdAt.split("T")[0] ?? "1970-01-01";
 
-  const totalDeposits = spending?.find((s) => s.transactionType === "DEPOSIT")?.totalCents ?? 0;
-  const totalWithdrawals = spending?.find((s) => s.transactionType === "WITHDRAW")?.totalCents ?? 0;
+  const { data: spending, isLoading: isSpendingLoading } =
+    useSpendingByCategory(walletId, allTimeFrom, today);
+  const totalDeposits =
+    spending?.find((s) => s.transactionType === "DEPOSIT")?.totalCents ?? 0;
+  const totalWithdrawals =
+    spending?.find((s) => s.transactionType === "WITHDRAW")?.totalCents ?? 0;
 
-  const { data: recentTx = [], isLoading: isTxLoading } = useRecentTransactions(resolvedWalletId, 5);
-  const { data: currentSummary, isLoading: isCurrentSummaryLoading } = useMonthlySummary(resolvedWalletId, currentMonthStr);
-  const { data: prevSummary } = useMonthlySummary(resolvedWalletId, prevMonthStr);
+  const { data: recentTx = [], isLoading: isTxLoading } = useRecentTransactions(
+    resolvedWalletId,
+    5,
+  );
+  const { data: currentSummary, isLoading: isCurrentSummaryLoading } =
+    useMonthlySummary(resolvedWalletId, currentMonthStr);
+  const { data: prevSummary } = useMonthlySummary(
+    resolvedWalletId,
+    prevMonthStr,
+  );
 
   const isLoading = isWalletsLoading || isSpendingLoading;
 
@@ -100,12 +113,19 @@ function DashboardContent() {
             isLoading={isCurrentSummaryLoading}
           />
           <div className="rounded-2xl border border-border bg-background p-6 h-[220px]">
-            <h2 className="text-xl font-medium text-muted-foreground mb-4">Wallet Details</h2>
+            <h2 className="text-xl font-medium text-muted-foreground mb-4">
+              Wallet Details
+            </h2>
             <div>
               {[
                 ["Wallet ID", `W-...${activeWallet?.id.slice(-4) ?? "N/A"}`],
                 ["Currency", currency],
-                ["Created At", activeWallet ? format(new Date(activeWallet.createdAt), "MMM d, yyyy") : "N/A"],
+                [
+                  "Created At",
+                  activeWallet
+                    ? format(new Date(activeWallet.createdAt), "MMM d, yyyy")
+                    : "N/A",
+                ],
               ].map(([key, value]) => (
                 <div key={key} className="flex justify-between py-2">
                   <span className="text-sm text-muted-foreground">{key}</span>
