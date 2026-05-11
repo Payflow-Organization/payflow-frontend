@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createWallet, getWallet, getWallets } from "@/lib/api/wallets";
+import { createWallet, freezeWallet, getWallet, getWallets } from "@/lib/api/wallets";
 import type { CreateWalletRequest } from "@/lib/types";
 
 export function useWallets() {
@@ -24,6 +24,17 @@ export function useCreateWallet() {
 
   return useMutation({
     mutationFn: (data: CreateWalletRequest) => createWallet(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["wallets"] });
+    },
+  });
+}
+
+export function useFreezeWallet() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => freezeWallet(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
     },

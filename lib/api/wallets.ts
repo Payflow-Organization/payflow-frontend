@@ -27,6 +27,10 @@ export async function createWallet(data: CreateWalletRequest): Promise<Wallet> {
   return res.data;
 }
 
+export async function freezeWallet(id: string): Promise<void> {
+  await client.post(`/wallets/${id}/freeze`);
+}
+
 export async function getWalletStatement(
   id: string,
   from: string,

@@ -1,11 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import {
-  getBalanceHistory,
-  getMonthlySummary,
-} from "@/lib/api/analytics";
 import { mockGetSpendingByCategory } from "@/lib/mocks/transaction";
+import { mockGetBalanceHistory, mockGetMonthlySummary } from "@/lib/mocks/analytics";
 import type { SpendingByCategory } from "@/lib/types";
 
 const ANALYTICS_STALE_TIME = 5 * 60 * 1000;
@@ -13,7 +10,7 @@ const ANALYTICS_STALE_TIME = 5 * 60 * 1000;
 export function useMonthlySummary(walletId: string, month: string) {
   return useQuery({
     queryKey: ["analytics", "summary", walletId, month],
-    queryFn: () => getMonthlySummary(walletId, month),
+    queryFn: () => mockGetMonthlySummary(walletId, month),
     enabled: !!walletId && !!month,
     staleTime: ANALYTICS_STALE_TIME,
   });
@@ -27,7 +24,7 @@ export function useBalanceHistory(
 ) {
   return useQuery({
     queryKey: ["analytics", "history", walletId, from, to, interval],
-    queryFn: () => getBalanceHistory(walletId, from, to, interval),
+    queryFn: () => mockGetBalanceHistory(walletId, from, to, interval),
     enabled: !!walletId && !!from && !!to,
     staleTime: ANALYTICS_STALE_TIME,
     // Known limitation: overlapping date ranges are not deduplicated.
@@ -42,14 +39,14 @@ export function useSpendingByCategory(
 ) {
   return useQuery({
     queryKey: ["analytics", "spending", walletId, from, to],
-    queryFn: () => mockGetSpendingByCategory(walletId),
+    queryFn: () => mockGetSpendingByCategory(walletId, from, to),
     enabled: !!walletId,
     staleTime: ANALYTICS_STALE_TIME,
   });
 }
 
-export function useAllTimeSummary(walletId: string) {
-  const { data, isLoading } = useSpendingByCategory(walletId, "2000-01-01", new Date().toISOString().slice(0, 10));
+export function useAllTimeSummary(walletId: string, from: string) {
+  const { data, isLoading } = useSpendingByCategory(walletId, from, new Date().toISOString().slice(0, 10));
 
   const inflowCents = data?.find((s) => s.transactionType === "DEPOSIT")?.totalCents ?? 0;
   const outflowCents =

@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAllTimeSummary } from "@/lib/hooks/use-analytics";
+import { useWallet } from "@/lib/hooks/use-wallet";
 import { formatCurrency } from "@/lib/utils";
 import { ArrowDownLeft, ArrowUpRight, TrendingUp } from "lucide-react";
 
@@ -38,8 +39,10 @@ function SummaryCard({
 }
 
 export function TransactionSummaryCards({ walletId }: { walletId: string }) {
+  const { data: wallet } = useWallet(walletId);
+  const from = wallet?.createdAt.split("T")[0] ?? "1970-01-01";
   const { inflowCents, outflowCents, netCents, currency, isLoading } =
-    useAllTimeSummary(walletId);
+    useAllTimeSummary(walletId, from);
 
   if (isLoading) {
     return (

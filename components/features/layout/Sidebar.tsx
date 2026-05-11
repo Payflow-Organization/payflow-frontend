@@ -1,5 +1,5 @@
 "use client";
-import { ArrowRightLeft, Landmark, LogOut, PlusCircle } from "lucide-react";
+import { ArrowRightLeft, Landmark, LogOut, PlusCircle, FlaskConical } from "lucide-react";
 import { IconLayoutDashboard } from "@tabler/icons-react";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
@@ -21,6 +21,11 @@ const navLinks = [
     href: "/transactions",
     icon: <ReceiptLongOutlinedIcon />,
     label: "Transactions",
+  },
+  {
+    href: "/scenarios",
+    icon: <FlaskConical size={20} />,
+    label: "Scenarios",
   },
 ];
 

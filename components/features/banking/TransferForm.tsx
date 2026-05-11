@@ -12,6 +12,7 @@ import { formatCurrency, formatCurrencyCompact } from "@/lib/utils";
 import { Check, CheckCircle, ShieldCheck, User, Wallet } from "lucide-react";
 import { useRef, useState } from "react";
 import { useCreateTransfer } from "@/lib/hooks/use-transactions";
+import { getDemoFlags } from "@/lib/demo-flags";
 import { Skeleton } from "@/components/ui/skeleton";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -77,8 +78,12 @@ function TransferFormInner({ initialWalletId }: { initialWalletId: string }) {
   const balanceCents = sourceWallet?.balance ?? 0;
   const resolvedSourceId = sourceWallet?.id ?? "";
   const ownWallets = wallets?.filter((w) => w.id !== resolvedSourceId) ?? [];
+  const isSourceFrozen =
+    sourceWallet?.status === "FROZEN" ||
+    getDemoFlags().frozenWalletId === sourceWallet?.id;
 
   async function onSubmit(values: TransferFormValues) {
+    if (isSourceFrozen) { transfer.reset(); return; }
     await transfer.mutateAsync({
       fromWalletId: values.sourceWalletId,
       toWalletId: values.destinationWalletId,
@@ -370,7 +375,7 @@ function TransferFormInner({ initialWalletId }: { initialWalletId: string }) {
                 </div>
               </div>
 
-              {transfer.isSuccess && (
+              {transfer.isSuccess && !isSourceFrozen && (
                 <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-0.5">
                   <div className="flex items-center gap-2 text-primary font-semibold text-sm">
                     <CheckCircle size={14} />
@@ -383,12 +388,19 @@ function TransferFormInner({ initialWalletId }: { initialWalletId: string }) {
               )}
               {transfer.isError && (
                 <div className="rounded-xl bg-destructive/5 border border-destructive/20 p-3 text-sm text-destructive">
-                  Transfer failed. Please try again.
+                  {(transfer.error as { code?: string })?.code === "WALLET_FROZEN"
+                    ? "Source wallet is frozen — transfer rejected by the server."
+                    : "Transfer failed. Please try again."}
+                </div>
+              )}
+              {isSourceFrozen && (
+                <div className="rounded-xl bg-destructive/5 border border-destructive/20 p-3 text-sm text-destructive">
+                  Source wallet is frozen. Transfers are not allowed. Contact support to unfreeze.
                 </div>
               )}
               <Button
                 type="submit"
-                disabled={!form.formState.isValid || transfer.isPending}
+                disabled={!form.formState.isValid || transfer.isPending || isSourceFrozen}
                 className="w-full rounded-full h-12 text-base shadow-2xl"
               >
                 {transfer.isPending ? "Processing..." : "Confirm Transfer →"}
