@@ -2,9 +2,18 @@
 // Switches between mock and real API based on NEXT_PUBLIC_USE_MOCK.
 
 import type { ScenarioResult } from "./types";
-import { mockCreateDeposit, mockScenarioWithdraw, getTransactionPool } from "@/lib/mocks/transaction";
+import {
+  mockCreateDeposit,
+  mockCreateWithdraw,
+  mockCreateTransfer,
+  mockScenarioWithdraw,
+  getTransactionPool,
+  resetTransactionPool,
+  primePool,
+} from "@/lib/mocks/transaction";
+import type { Transaction, TransactionType } from "@/lib/types";
 import { createWallet, getWallets } from "@/lib/api/wallets";
-import { createDeposit, createWithdraw, createTransfer } from "@/lib/api/transaction";
+import { createDeposit, createWithdraw } from "@/lib/api/transaction";
 import { formatCurrency } from "@/lib/utils";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
@@ -222,11 +231,16 @@ export async function runOverdraft(
 }
 
 // ─── 6. Seed Backend ──────────────────────────────────────────────────────────
-// Creates 3 wallets (2× GBP, 1× EUR) and fires real deposits, withdrawals, and
-// transfers through the actual API so the UI pages load live data from the backend.
-// Run this once before demoing; data persists in PostgreSQL.
+// Creates wallets and fires deposits, withdrawals, and transfers.
+// In mock mode: seeds the in-memory transaction pools directly.
+// In live mode: hits the real backend; idempotent (skips if data already present).
 export async function runSeedBackend(): Promise<ScenarioResult> {
   const start = Date.now();
+
+  if (USE_MOCK) {
+    return runMockSeed(start);
+  }
+
   const rows: ScenarioResult["rows"] = [];
   let txCount = 0;
 
@@ -238,11 +252,6 @@ export async function runSeedBackend(): Promise<ScenarioResult> {
     await createWithdraw({ fromWalletId: walletId, amount, currency, idempotencyKey: crypto.randomUUID() });
     txCount++;
   }
-  async function transfer(fromId: string, toId: string, currency: string, amount: number) {
-    await createTransfer({ fromWalletId: fromId, toWalletId: toId, amount, currency, idempotencyKey: crypto.randomUUID() });
-    txCount++;
-  }
-
   try {
     // Check existing state first — idempotent by design
     const existing = await getWallets();
@@ -270,41 +279,34 @@ export async function runSeedBackend(): Promise<ScenarioResult> {
       };
     }
 
-    const gbp1 = await createWallet({ currency: "GBP" });
-    rows.push({ label: "GBP wallet 1", value: `created ····${gbp1.id.slice(-4)}`, mono: true, status: "pass" });
-
-    const gbp2 = await createWallet({ currency: "GBP" });
-    rows.push({ label: "GBP wallet 2", value: `created ····${gbp2.id.slice(-4)}`, mono: true, status: "pass" });
+    const gbp = await createWallet({ currency: "GBP" });
+    rows.push({ label: "GBP wallet", value: `created ····${gbp.id.slice(-4)}`, mono: true, status: "pass" });
 
     const eur = await createWallet({ currency: "EUR" });
     rows.push({ label: "EUR wallet", value: `created ····${eur.id.slice(-4)}`, mono: true, status: "pass" });
 
-    // GBP wallet 1 — build up a realistic balance with varied activity
-    await deposit(gbp1.id, "GBP", 50000);
-    await deposit(gbp1.id, "GBP", 120000);
-    await withdraw(gbp1.id, "GBP", 7500);
-    await deposit(gbp1.id, "GBP", 30000);
-    await withdraw(gbp1.id, "GBP", 12000);
-    await transfer(gbp1.id, gbp2.id, "GBP", 15000);
-    await deposit(gbp1.id, "GBP", 22000);
-    await withdraw(gbp1.id, "GBP", 4500);
-    await transfer(gbp1.id, gbp2.id, "GBP", 8000);
-    await deposit(gbp1.id, "GBP", 45000);
-    rows.push({ label: "GBP wallet 1 activity", value: "10 transactions", status: "neutral" });
+    const usd = await createWallet({ currency: "USD" });
+    rows.push({ label: "USD wallet", value: `created ····${usd.id.slice(-4)}`, mono: true, status: "pass" });
 
-    // GBP wallet 2 — receives transfers, has own deposits/withdrawals
-    await deposit(gbp2.id, "GBP", 20000);
-    await withdraw(gbp2.id, "GBP", 5000);
-    await deposit(gbp2.id, "GBP", 8500);
-    rows.push({ label: "GBP wallet 2 activity", value: "3 transactions + 2 incoming transfers", status: "neutral" });
+    await deposit(gbp.id, "GBP", 50000);
+    await deposit(gbp.id, "GBP", 120000);
+    await withdraw(gbp.id, "GBP", 7500);
+    await deposit(gbp.id, "GBP", 30000);
+    await withdraw(gbp.id, "GBP", 12000);
+    await deposit(gbp.id, "GBP", 22000);
+    await withdraw(gbp.id, "GBP", 4500);
+    await deposit(gbp.id, "GBP", 45000);
+    rows.push({ label: "GBP wallet activity", value: "8 transactions", status: "neutral" });
 
-    // EUR wallet
     await deposit(eur.id, "EUR", 40000);
     await deposit(eur.id, "EUR", 9500);
     await withdraw(eur.id, "EUR", 6000);
-    await deposit(eur.id, "EUR", 27500);
-    await withdraw(eur.id, "EUR", 18000);
-    rows.push({ label: "EUR wallet activity", value: "5 transactions", status: "neutral" });
+    rows.push({ label: "EUR wallet activity", value: "3 transactions", status: "neutral" });
+
+    await deposit(usd.id, "USD", 35000);
+    await deposit(usd.id, "USD", 12000);
+    await withdraw(usd.id, "USD", 8000);
+    rows.push({ label: "USD wallet activity", value: "3 transactions", status: "neutral" });
 
     rows.push({ label: "Total transactions", value: String(txCount), status: "pass" });
 
@@ -313,7 +315,7 @@ export async function runSeedBackend(): Promise<ScenarioResult> {
       summary: `Backend seeded — ${txCount} transactions across 3 wallets. Refresh the page to see live data.`,
       rows,
       durationMs: Date.now() - start,
-      swapNote: "POST /wallets ×3 · POST /transactions/deposit + /withdraw + /transfer ×" + txCount,
+      swapNote: "POST /wallets ×3 · POST /transactions/deposit + /withdraw ×" + txCount,
     };
   } catch (e: any) {
     const detail = e?.response?.data?.message ?? e?.response?.data?.code ?? e?.message ?? "unknown error";
@@ -325,4 +327,119 @@ export async function runSeedBackend(): Promise<ScenarioResult> {
       swapNote: "",
     };
   }
+}
+
+async function runMockSeed(start: number): Promise<ScenarioResult> {
+  const wallets = await getWallets();
+  if (wallets.length < 2) {
+    return {
+      status: "fail",
+      summary: "Need at least 2 mock wallets to seed transfers.",
+      rows: [],
+      durationMs: Date.now() - start,
+      swapNote: "",
+    };
+  }
+
+  resetTransactionPool();
+
+  const [w1, w2] = wallets;
+
+  // Transactions spread evenly over the past 60 days — oldest first so the
+  // balance history graph shows a realistic curve rather than a single spike.
+  const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+
+  type TxPlan = {
+    walletIds: string[];
+    type: TransactionType;
+    fromWalletId: string | null;
+    toWalletId: string | null;
+    amount: number;
+    currency: string;
+  };
+
+  // Two full sine cycles over 60 days.
+  // Phase net changes from a ~80k baseline (mock seed floor):
+  //   Rise 1: +210k → ~290k peak
+  //   Fall 1: −170k → ~120k trough
+  //   Rise 2: +190k → ~310k peak
+  //   Fall 2:  −70k → ~240k tail
+  const plan: TxPlan[] = [
+    // ── Rise 1 (days 60–46 ago) ──────────────────────────────────────────────
+    { walletIds: [w1.id],        type: "DEPOSIT",  fromWalletId: null,  toWalletId: w1.id,  amount: 85000, currency: w1.currency },
+    { walletIds: [w1.id],        type: "DEPOSIT",  fromWalletId: null,  toWalletId: w1.id,  amount: 70000, currency: w1.currency },
+    { walletIds: [w1.id],        type: "WITHDRAW", fromWalletId: w1.id, toWalletId: null,   amount: 5000,  currency: w1.currency },
+    { walletIds: [w1.id],        type: "DEPOSIT",  fromWalletId: null,  toWalletId: w1.id,  amount: 60000, currency: w1.currency },
+    // ── Fall 1 (days 46–31 ago) ──────────────────────────────────────────────
+    { walletIds: [w1.id],        type: "WITHDRAW", fromWalletId: w1.id, toWalletId: null,   amount: 60000, currency: w1.currency },
+    { walletIds: [w1.id],        type: "WITHDRAW", fromWalletId: w1.id, toWalletId: null,   amount: 75000, currency: w1.currency },
+    { walletIds: [w1.id],        type: "DEPOSIT",  fromWalletId: null,  toWalletId: w1.id,  amount: 10000, currency: w1.currency },
+    { walletIds: [w1.id, w2.id], type: "TRANSFER", fromWalletId: w1.id, toWalletId: w2.id,  amount: 45000, currency: w1.currency },
+    // ── Rise 2 (days 31–16 ago) ──────────────────────────────────────────────
+    { walletIds: [w1.id],        type: "DEPOSIT",  fromWalletId: null,  toWalletId: w1.id,  amount: 90000, currency: w1.currency },
+    { walletIds: [w1.id],        type: "DEPOSIT",  fromWalletId: null,  toWalletId: w1.id,  amount: 65000, currency: w1.currency },
+    { walletIds: [w1.id],        type: "WITHDRAW", fromWalletId: w1.id, toWalletId: null,   amount: 8000,  currency: w1.currency },
+    { walletIds: [w1.id],        type: "DEPOSIT",  fromWalletId: null,  toWalletId: w1.id,  amount: 43000, currency: w1.currency },
+    // ── Fall 2 (days 16–1 ago) ───────────────────────────────────────────────
+    { walletIds: [w1.id, w2.id], type: "TRANSFER", fromWalletId: w1.id, toWalletId: w2.id,  amount: 32000, currency: w1.currency },
+    { walletIds: [w1.id],        type: "WITHDRAW", fromWalletId: w1.id, toWalletId: null,   amount: 40000, currency: w1.currency },
+    { walletIds: [w1.id],        type: "DEPOSIT",  fromWalletId: null,  toWalletId: w1.id,  amount: 22000, currency: w1.currency },
+    { walletIds: [w1.id],        type: "WITHDRAW", fromWalletId: w1.id, toWalletId: null,   amount: 20000, currency: w1.currency },
+    // ── w2 ───────────────────────────────────────────────────────────────────
+    { walletIds: [w2.id],        type: "DEPOSIT",  fromWalletId: null,  toWalletId: w2.id,  amount: 25000, currency: w2.currency },
+    { walletIds: [w2.id],        type: "WITHDRAW", fromWalletId: w2.id, toWalletId: null,   amount: 8000,  currency: w2.currency },
+    { walletIds: [w2.id],        type: "DEPOSIT",  fromWalletId: null,  toWalletId: w2.id,  amount: 14000, currency: w2.currency },
+  ];
+
+  for (const w of wallets.slice(2)) {
+    plan.push(
+      { walletIds: [w.id], type: "DEPOSIT",  fromWalletId: null,  toWalletId: w.id, amount: 40000, currency: w.currency },
+      { walletIds: [w.id], type: "DEPOSIT",  fromWalletId: null,  toWalletId: w.id, amount: 9500,  currency: w.currency },
+      { walletIds: [w.id], type: "WITHDRAW", fromWalletId: w.id,  toWalletId: null, amount: 6000,  currency: w.currency },
+    );
+  }
+
+  // Assign timestamps spread from 60 days ago → now, then sort each pool by date.
+  const poolMap = new Map<string, Transaction[]>();
+  plan.forEach(({ walletIds, type, fromWalletId, toWalletId, amount, currency }, i) => {
+    const fraction = plan.length === 1 ? 1 : i / (plan.length - 1);
+    const createdAt = new Date(now - SIXTY_DAYS_MS * (1 - fraction)).toISOString();
+    const tx: Transaction = {
+      id: crypto.randomUUID(),
+      type,
+      fromWalletId,
+      toWalletId,
+      amount,
+      currency,
+      status: "SUCCESS",
+      createdAt,
+    };
+    for (const wid of walletIds) {
+      if (!poolMap.has(wid)) poolMap.set(wid, []);
+      poolMap.get(wid)!.push(tx);
+    }
+  });
+
+  for (const [walletId, txs] of poolMap) {
+    // Most-recent first — matches what the real backend returns (ORDER BY created_at DESC)
+    primePool(walletId, txs.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+  }
+
+  const txCount = plan.length;
+  const rows: ScenarioResult["rows"] = [
+    { label: `${w1.currency} wallet 1`, value: "10 transactions (5 dep · 3 wd · 2 transfers out)", status: "neutral" },
+    { label: `${w2.currency} wallet 2`, value: "3 transactions + 2 incoming transfers", status: "neutral" },
+    ...wallets.slice(2).map((w) => ({ label: `${w.currency} wallet`, value: "3 transactions", status: "neutral" as const })),
+    { label: "Date spread", value: "past 60 days → graph shows a full curve", status: "pass" },
+    { label: "Total", value: String(txCount), status: "pass" },
+  ];
+
+  return {
+    status: "pass",
+    summary: `Mock data seeded — ${txCount} transactions across ${wallets.length} wallets, spread over 60 days. Transfers visible on both sides.`,
+    rows,
+    durationMs: Date.now() - start,
+    swapNote: "Mock mode — in-memory only, lost on page refresh",
+  };
 }

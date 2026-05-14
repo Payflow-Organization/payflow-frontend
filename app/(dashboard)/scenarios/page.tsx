@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useWallets, useFreezeWallet } from "@/lib/hooks/use-wallet";
+import { useWallets, useFreezeWallet, useUnfreezeWallet } from "@/lib/hooks/use-wallet";
 import { getDemoFlags, setDemoFlag, clearDemoFlags, type DemoFlags } from "@/lib/demo-flags";
 import { resetTransactionPool } from "@/lib/mocks/transaction";
 import {
@@ -31,6 +31,8 @@ const LAG_OPTIONS = [
 export default function ScenariosPage() {
   const { data: wallets } = useWallets();
   const freezeWalletMutation = useFreezeWallet();
+  const unfreezeWalletMutation = useUnfreezeWallet();
+
   const [flags, setFlags] = useState<DemoFlags>(() => getDemoFlags());
   const [resetDone, setResetDone] = useState(false);
 
@@ -112,14 +114,18 @@ export default function ScenariosPage() {
               const isFrozen = flags.frozenWalletId === w.id || w.status === "FROZEN";
               return (
                 <Button key={w.id} size="sm" variant={isFrozen ? "destructive" : "outline"} className="rounded-full h-7 px-3 text-xs"
-                  disabled={freezeWalletMutation.isPending}
+                  disabled={freezeWalletMutation.isPending || unfreezeWalletMutation.isPending}
                   onClick={async () => {
                     if (USE_MOCK) {
                       if (isFrozen) { apply("frozenWalletId", null); return; }
                       try { await freezeWalletMutation.mutateAsync(w.id); } catch { }
                       apply("frozenWalletId", w.id);
                     } else {
-                      if (!isFrozen) await freezeWalletMutation.mutateAsync(w.id).catch(() => {});
+                      if (isFrozen) {
+                        await unfreezeWalletMutation.mutateAsync(w.id).catch(() => {});
+                      } else {
+                        await freezeWalletMutation.mutateAsync(w.id).catch(() => {});
+                      }
                     }
                   }}
                 >

@@ -50,8 +50,8 @@ function statusLabel(status: string) {
   return map[status] ?? status;
 }
 
-function amountColor(type: string) {
-  if (type === "DEPOSIT") return "text-primary font-bold";
+function amountColor(type: string, isIncoming?: boolean) {
+  if (type === "DEPOSIT" || isIncoming) return "text-primary font-bold";
   if (type === "WITHDRAW" || type === "TRANSFER") return "text-[#BA1A1A] font-bold";
   return "font-bold";
 }
@@ -63,6 +63,7 @@ type Props = {
   totalPages: number;
   totalElements: number;
   onPageChange: (page: number) => void;
+  walletId?: string;
 };
 
 export function TransactionTable({
@@ -72,6 +73,7 @@ export function TransactionTable({
   totalPages,
   totalElements,
   onPageChange,
+  walletId,
 }: Props) {
   return (
     <Card className="rounded-lg border border-border">
@@ -158,7 +160,9 @@ export function TransactionTable({
                 </TableCell>
               </TableRow>
             ) : (
-              transactions.map((tx) => (
+              transactions.map((tx) => {
+                const isIncoming = tx.type === "TRANSFER" && tx.toWalletId === walletId;
+                return (
                 <TableRow key={tx.id} className="hover:bg-accent/50">
                   <TableCell className="flex gap-1 font-mono font-semibold text-sm">
                     #<span>{tx.id.slice(0, 10).toUpperCase()}</span>
@@ -195,9 +199,9 @@ export function TransactionTable({
                     </Badge>
                   </TableCell>
                   <TableCell
-                    className={`text-right font-bold text-sm ${amountColor(tx.type)}`}
+                    className={`text-right font-bold text-sm ${amountColor(tx.type, isIncoming)}`}
                   >
-                    {tx.type === "DEPOSIT" ? "+" : "-"}
+                    {tx.type === "DEPOSIT" || isIncoming ? "+" : "-"}
                     {formatCurrency(tx.amount, tx.currency)}
                   </TableCell>
                   <TableCell className="text-center">
@@ -209,7 +213,8 @@ export function TransactionTable({
                     </Badge>
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>

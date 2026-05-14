@@ -26,6 +26,6 @@ export async function refreshTokens(): Promise<AuthResponse> {
 }
 
 export async function getMe(): Promise<UserProfile> {
-  const res = await client.get<UserProfile>("/users/me");
+  const res = await client.get<UserProfile>("/auth/me");
   return res.data;
 }

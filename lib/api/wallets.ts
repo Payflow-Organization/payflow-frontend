@@ -31,6 +31,10 @@ export async function freezeWallet(id: string): Promise<void> {
   await client.post(`/wallets/${id}/freeze`);
 }
 
+export async function unfreezeWallet(id: string): Promise<void> {
+  await client.post(`/wallets/${id}/unfreeze`);
+}
+
 export async function getWalletStatement(
   id: string,
   from: string,

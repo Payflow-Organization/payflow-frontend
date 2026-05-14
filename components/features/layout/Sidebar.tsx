@@ -1,5 +1,5 @@
 "use client";
-import { ArrowRightLeft, Landmark, LogOut, PlusCircle, FlaskConical } from "lucide-react";
+import { ArrowRightLeft, Landmark, LogOut, PlusCircle, FlaskConical, Loader2 } from "lucide-react";
 import { IconLayoutDashboard } from "@tabler/icons-react";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
@@ -33,7 +33,7 @@ function Sidebar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { data: wallets } = useWallets();
-  const { mutate: logout } = useLogout();
+  const { mutate: logout, isPending: isLoggingOut } = useLogout();
 
   const walletId = searchParams.get("walletId") ?? wallets?.[0]?.id;
   const walletQuery = walletId ? `?walletId=${walletId}` : "";
@@ -61,10 +61,11 @@ function Sidebar() {
         <li className="h-12 flex items-center rounded-lg text-[#6B7280] hover:text-destructive cursor-pointer">
           <button
             onClick={() => logout()}
-            className="flex items-center gap-3 w-full px-8"
+            disabled={isLoggingOut}
+            className="flex items-center gap-3 w-full px-8 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <LogOut size={20} />
-            Logout
+            {isLoggingOut ? <Loader2 size={20} className="animate-spin" /> : <LogOut size={20} />}
+            {isLoggingOut ? "Logging out..." : "Logout"}
           </button>
         </li>
       </ul>

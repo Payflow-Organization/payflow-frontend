@@ -1,40 +1,47 @@
 "use client";
 import React from "react";
-import {
-  environmentManager,
-  QueryClient,
-  QueryClientProvider,
-} from "@tanstack/react-query";
+import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-function makeQueryClient() {
+if (
+  process.env.NODE_ENV === "development" &&
+  process.env.NEXT_PUBLIC_USE_MOCK !== "false"
+) {
+  import("@/mocks").then(({ initMocks }) => initMocks());
+}
+
+let browserQueryClient: QueryClient | undefined;
+
+function makeQueryClient(onAuthExpired: () => void): QueryClient {
   return new QueryClient({
     defaultOptions: {
-      queries: {
-        staleTime: 60 * 1000,
-      },
+      queries: { staleTime: 60 * 1000 },
     },
+    queryCache: new QueryCache({
+      onError: (error: unknown) => {
+        if ((error as { type?: string })?.type === "AUTH_EXPIRED") {
+          onAuthExpired();
+        }
+      },
+    }),
   });
 }
 
-let browserQueryClient: QueryClient | undefined = undefined;
+function getQueryClient(onAuthExpired: () => void): QueryClient {
+  if (typeof window === "undefined") return makeQueryClient(onAuthExpired);
+  if (!browserQueryClient) browserQueryClient = makeQueryClient(onAuthExpired);
+  return browserQueryClient;
+}
 
-function getQueryClient() {
-  if (environmentManager.isServer()) {
-    return makeQueryClient();
-  } else {
-    if (!browserQueryClient) browserQueryClient = makeQueryClient();
-    return browserQueryClient;
-  }
-}
-if (process.env.NODE_ENV === "development") {
-  import("@/mocks").then(({ initMocks }) => initMocks());
-}
 export default function Providers({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const queryClient = getQueryClient();
+  const queryClient = getQueryClient(() => {
+    if (window.location.pathname !== "/login") {
+      window.location.replace("/login");
+    }
+  });
 
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

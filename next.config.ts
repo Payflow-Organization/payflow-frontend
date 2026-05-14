@@ -16,6 +16,20 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  async rewrites() {
+    return {
+      beforeFiles: [],
+      afterFiles: [],
+      // fallback runs after all pages and API routes — so app/api/v1/auth/[...path]
+      // takes precedence and the rewrite only handles non-auth paths.
+      fallback: [
+        {
+          source: "/api/v1/:path*",
+          destination: `${process.env.BACKEND_URL}/api/v1/:path*`,
+        },
+      ],
+    };
+  },
   async headers() {
     return [
       {

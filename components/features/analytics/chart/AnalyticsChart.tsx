@@ -19,12 +19,10 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  addMonths,
   differenceInDays,
   format,
   getMonth,
   getYear,
-  subDays,
 } from "date-fns";
 import Link from "next/link";
 import { useBalanceHistory } from "@/lib/hooks/use-analytics";
@@ -63,23 +61,10 @@ const MONTHS_SHORT = Array.from({ length: 12 }, (_, i) =>
 );
 
 function getInterval(period: Period, from: Date, to: Date): string {
-  if (period === "Monthly" && differenceInDays(to, from) <= 35) return "1 week";
+  if (period === "Monthly" && differenceInDays(to, from) <= 35) return "7 days";
   return "1 month";
 }
 
-function getPreviousPeriod(from: Date, to: Date, period: Period): [Date, Date] {
-  if (period === "Quarterly") return [addMonths(from, -3), addMonths(to, -3)];
-  if (period === "Yearly")
-    return [
-      new Date(from.getFullYear() - 1, 0, 1),
-      new Date(to.getFullYear() - 1, 11, 31),
-    ];
-  // Monthly: shift back by the same number of days
-  const days = differenceInDays(to, from) + 1;
-  const prevTo = subDays(from, 1);
-  const prevFrom = subDays(prevTo, days - 1);
-  return [prevFrom, prevTo];
-}
 
 function buildLabel(
   point: BalanceHistoryPoint,
@@ -87,7 +72,7 @@ function buildLabel(
   allPoints: BalanceHistoryPoint[],
 ): string {
   const date = new Date(point.interval);
-  if (interval === "1 week") {
+  if (interval === "7 days" || interval === "1 week") {
     const start = new Date(allPoints[0].interval);
     const weekNum = Math.round(differenceInDays(date, start) / 7) + 1;
     return `Week ${weekNum}`;
@@ -122,53 +107,38 @@ export function AnalyticsChart({
   viewMoreHref,
 }: AnalyticsChartProps) {
   const interval = getInterval(period, dateRange.from, dateRange.to);
-  const [prevFrom, prevTo] = getPreviousPeriod(
-    dateRange.from,
-    dateRange.to,
-    period,
-  );
 
   const fromStr = format(dateRange.from, "yyyy-MM-dd");
   const toStr = format(dateRange.to, "yyyy-MM-dd");
-  const prevFromStr = format(prevFrom, "yyyy-MM-dd");
-  const prevToStr = format(prevTo, "yyyy-MM-dd");
 
-  const { data: current = [], isLoading: isCurrentLoading } = useBalanceHistory(
+  const { data: current = [], isLoading, isError: isCurrentError } = useBalanceHistory(
     walletId,
     fromStr,
     toStr,
     interval,
   );
-  const { data: previous = [], isLoading: isPrevLoading } = useBalanceHistory(
-    walletId,
-    prevFromStr,
-    prevToStr,
-    interval,
-  );
 
-  const isLoading = isCurrentLoading || isPrevLoading;
+  const isEmpty = !isLoading && current.length === 0;
 
   const chartData = useMemo(
     () =>
       current.map((point, i) => ({
         label: buildLabel(point, interval, current),
-        // Convert cents → currency units while preserving sub-unit precision
         value: point.lastBalanceCents / 100,
-        prev: previous[i] ? previous[i].lastBalanceCents / 100 : 0,
+        prev: i > 0 ? current[i - 1].lastBalanceCents / 100 : null,
       })),
-    [current, previous, interval],
+    [current, interval],
   );
 
   const yDomain = useMemo((): [number, number] => {
     if (chartData.length === 0) return [0, 1000];
-    const allVals = chartData.flatMap((d) => [d.value, d.prev]).filter(Boolean);
-    const min = Math.min(...allVals),
-      max = Math.max(...allVals);
+    const vals = chartData.map((d) => d.value).filter((v) => v != null);
+    const min = Math.min(...vals), max = Math.max(...vals);
     return [Math.floor(min * 0.92), Math.ceil(max * 1.08)];
   }, [chartData]);
 
   const subtitle =
-    interval === "1 week"
+    interval === "7 days" || interval === "1 week"
       ? "Balance history grouped by weekly"
       : period === "Yearly"
         ? "Balance history grouped by yearly"
@@ -203,7 +173,7 @@ export function AnalyticsChart({
             </div>
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground font-medium">
               <span className="w-3 h-3 rounded-full bg-[#aaa] shrink-0" />
-              Previous
+              Previous Period
             </div>
           </div>
         </div>
@@ -211,6 +181,13 @@ export function AnalyticsChart({
       <CardContent className="px-10 pb-4">
         {isLoading ? (
           <Skeleton className="w-full rounded-lg" style={{ height }} />
+        ) : (isCurrentError || isEmpty) ? (
+          <div
+            className="w-full flex items-center justify-center text-sm text-muted-foreground"
+            style={{ height }}
+          >
+            {isCurrentError ? "Could not load balance history." : "No data for this period."}
+          </div>
         ) : (
           <ResponsiveContainer width="100%" height={height}>
             <LineChart

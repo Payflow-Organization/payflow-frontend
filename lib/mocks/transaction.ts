@@ -129,6 +129,10 @@ export function resetTransactionPool() {
   withdrawLock.clear();
 }
 
+export function primePool(walletId: string, txs: Transaction[]) {
+  transactionPool.set(walletId, [...txs]);
+}
+
 function checkDemoFailure() {
   const flags = getDemoFlags();
   if (flags.forceNextFailure) {
@@ -216,6 +220,7 @@ export async function mockCreateTransfer(
     createdAt: new Date().toISOString(),
   };
   insertIntoPool(data.fromWalletId, tx);
+  insertIntoPool(data.toWalletId, tx);
   idempotencyCache.set(data.idempotencyKey, tx);
   return tx;
 }

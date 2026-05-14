@@ -40,9 +40,9 @@ function SummaryCard({
 
 export function TransactionSummaryCards({ walletId }: { walletId: string }) {
   const { data: wallet } = useWallet(walletId);
-  const from = wallet?.createdAt.split("T")[0] ?? "1970-01-01";
-  const { inflowCents, outflowCents, netCents, currency, isLoading } =
-    useAllTimeSummary(walletId, from);
+  const currency = wallet?.currency ?? "GBP";
+  const { inflowCents, outflowCents, netCents, isLoading } =
+    useAllTimeSummary(walletId, "1970-01-01");
 
   if (isLoading) {
     return (

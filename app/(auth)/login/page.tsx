@@ -12,11 +12,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useLogin } from "@/lib/hooks/use-auth";
+import { useLogin, useMe } from "@/lib/hooks/use-auth";
 import { AxiosError } from "axios";
 
 const formSchema = z.object({
@@ -29,20 +29,29 @@ const formSchema = z.object({
 
 export default function Page() {
   const { mutate: login, isPending, error } = useLogin();
+  const { data: user, isLoading: isCheckingAuth } = useMe();
+  const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
+  // Consume the flag in the initialiser so it fires once and is immediately cleared.
+  const [justLoggedOut] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const flag = sessionStorage.getItem("logged_out") === "1";
+    if (flag) sessionStorage.removeItem("logged_out");
+    return flag;
+  });
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+    defaultValues: { email: "", password: "" },
   });
+
+  if (!justLoggedOut && !isCheckingAuth && user) {
+    router.replace("/dashboard");
+    return null;
+  }
 
   function onSubmit(data: z.infer<typeof formSchema>) {
     login(data);
   }
-
-  const [showPassword, setShowPassword] = useState<boolean>(false);
-  const router = useRouter();
 
   return (
     <div className="w-full !p-5 space-y-12">
@@ -70,9 +79,7 @@ export default function Page() {
                   placeholder="name@example.com"
                   aria-invalid={fieldState.invalid}
                 />
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>
             )}
           />
@@ -93,7 +100,7 @@ export default function Page() {
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
+                    onClick={() => setShowPassword((p) => !p)}
                     className="absolute inset-y-0 right-3 flex items-center text-muted-foreground hover:text-foreground transition-colors"
                     tabIndex={-1}
                   >
@@ -103,9 +110,7 @@ export default function Page() {
                 <span className="text-xs text-muted">
                   Must be at least 8 characters with one number.
                 </span>
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>
             )}
           />
@@ -131,12 +136,8 @@ export default function Page() {
         <hr className="h-2 w-full" />
         <div className="flex gap-1 items-center text-muted font-medium text-sm">
           New to the platform?{" "}
-          <Button
-            variant="link"
-            className="px-0"
-            onClick={() => router.push("/register")}
-          >
-            Create Account
+          <Button variant="link" className="px-0" asChild>
+            <Link href="/register">Create Account</Link>
           </Button>
         </div>
       </CardFooter>

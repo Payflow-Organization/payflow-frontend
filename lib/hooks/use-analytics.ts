@@ -1,6 +1,8 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useQuery, useQueries } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { mockGetSpendingByCategory } from "@/lib/mocks/transaction";
 import { mockGetBalanceHistory, mockGetMonthlySummary } from "@/lib/mocks/analytics";
 import {
@@ -68,7 +70,6 @@ export function useAllTimeSummary(walletId: string, from: string) {
     (data?.find((s) => s.transactionType === "WITHDRAW")?.totalCents ?? 0) +
     (data?.find((s) => s.transactionType === "TRANSFER")?.totalCents ?? 0);
   const netCents = inflowCents - outflowCents;
-  const currency = "GBP";
 
-  return { inflowCents, outflowCents, netCents, currency, isLoading };
+  return { inflowCents, outflowCents, netCents, isLoading };
 }

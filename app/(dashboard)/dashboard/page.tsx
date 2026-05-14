@@ -41,45 +41,41 @@ function DashboardContent() {
   const activeWallet = wallets?.find((w) => w.id === walletId) ?? wallets?.[0];
   const resolvedWalletId = walletId || (activeWallet?.id ?? "");
   const currency = activeWallet?.currency ?? "GBP";
-  const allTimeFrom = activeWallet?.createdAt.split("T")[0] ?? "1970-01-01";
+  const allTimeFrom = "1970-01-01";
 
-  const { data: spending, isLoading: isSpendingLoading } =
+  const { data: currentSummary, isLoading: isCurrentSummaryLoading } =
+    useMonthlySummary(resolvedWalletId, currentMonthStr);
+  const { data: prevSummary } = useMonthlySummary(resolvedWalletId, prevMonthStr);
+
+  const { data: spending } =
     useSpendingByCategory(resolvedWalletId, allTimeFrom, today);
-  const totalDeposits =
-    spending?.find((s) => s.transactionType === "DEPOSIT")?.totalCents ?? 0;
-  const totalWithdrawals =
-    spending?.find((s) => s.transactionType === "WITHDRAW")?.totalCents ?? 0;
+  const totalDeposits = currentSummary?.totalDepositsCents ?? 0;
+  const totalWithdrawals = currentSummary?.totalWithdrawalsCents ?? 0;
 
   const { data: recentTx = [], isLoading: isTxLoading } = useRecentTransactions(
     resolvedWalletId,
     5,
   );
-  const { data: currentSummary, isLoading: isCurrentSummaryLoading } =
-    useMonthlySummary(resolvedWalletId, currentMonthStr);
-  const { data: prevSummary } = useMonthlySummary(
-    resolvedWalletId,
-    prevMonthStr,
-  );
 
-  const isLoading = isWalletsLoading || isSpendingLoading;
+  const isLoading = isWalletsLoading || isCurrentSummaryLoading;
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-6">
         <StatCard
-          label="Total Net Worth"
+          label="Wallet Balance"
           value={formatCurrency(activeWallet?.balance ?? 0, currency)}
           icon={<PaymentsOutlinedIcon className="-scale-x-100" />}
           isLoading={isLoading}
         />
         <StatCard
-          label="Total Deposits"
+          label="Monthly Deposits"
           value={formatCurrency(totalDeposits, currency)}
           icon={<TrendingUp />}
           isLoading={isLoading}
         />
         <StatCard
-          label="Total Withdrawals"
+          label="Monthly Withdrawals"
           value={formatCurrency(totalWithdrawals, currency)}
           icon={<SavingsOutlinedIcon />}
           isLoading={isLoading}
