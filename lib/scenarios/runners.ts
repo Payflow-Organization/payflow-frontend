@@ -11,7 +11,8 @@ import {
   resetTransactionPool,
   primePool,
 } from "@/lib/mocks/transaction";
-import type { Transaction, TransactionType } from "@/lib/types";
+import type { AxiosError } from "axios";
+import type { Transaction, TransactionType, ApiError } from "@/lib/types";
 import { createWallet, getWallets } from "@/lib/api/wallets";
 import { createDeposit, createWithdraw } from "@/lib/api/transaction";
 import { formatCurrency } from "@/lib/utils";
@@ -207,9 +208,10 @@ export async function runOverdraft(
       durationMs: Date.now() - start,
       swapNote: "",
     };
-  } catch (e: any) {
-    const code = e?.response?.data?.code ?? e?.code ?? e?.message ?? "UNKNOWN";
-    const available = e?.response?.data?.availableCents ?? balanceCents;
+  } catch (e) {
+    const err = e as AxiosError<ApiError & { availableCents?: number }>;
+    const code = err.response?.data?.code ?? err.code ?? err.message ?? "UNKNOWN";
+    const available = err.response?.data?.availableCents ?? balanceCents;
     const pass = code.includes("INSUFFICIENT_FUNDS");
 
     return {
@@ -317,8 +319,9 @@ export async function runSeedBackend(): Promise<ScenarioResult> {
       durationMs: Date.now() - start,
       swapNote: "POST /wallets ×3 · POST /transactions/deposit + /withdraw ×" + txCount,
     };
-  } catch (e: any) {
-    const detail = e?.response?.data?.message ?? e?.response?.data?.code ?? e?.message ?? "unknown error";
+  } catch (e) {
+    const err = e as AxiosError<ApiError>;
+    const detail = err.response?.data?.message ?? err.response?.data?.code ?? err.message ?? "unknown error";
     return {
       status: "fail",
       summary: `Seeding failed: ${detail} — is the backend running and are you logged in?`,

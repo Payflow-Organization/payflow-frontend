@@ -1,16 +1,16 @@
 "use client";
 
-import { useMemo } from "react";
-import { useQuery, useQueries } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 import { mockGetSpendingByCategory } from "@/lib/mocks/transaction";
-import { mockGetBalanceHistory, mockGetMonthlySummary } from "@/lib/mocks/analytics";
+import {
+  mockGetBalanceHistory,
+  mockGetMonthlySummary,
+} from "@/lib/mocks/analytics";
 import {
   getMonthlySummary,
   getBalanceHistory,
   getSpendingByCategory,
 } from "@/lib/api/analytics";
-import type { SpendingByCategory } from "@/lib/types";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
 const ANALYTICS_STALE_TIME = 5 * 60 * 1000;
@@ -63,9 +63,14 @@ export function useSpendingByCategory(
 }
 
 export function useAllTimeSummary(walletId: string, from: string) {
-  const { data, isLoading } = useSpendingByCategory(walletId, from, new Date().toISOString().slice(0, 10));
+  const { data, isLoading } = useSpendingByCategory(
+    walletId,
+    from,
+    new Date().toISOString().slice(0, 10),
+  );
 
-  const inflowCents = data?.find((s) => s.transactionType === "DEPOSIT")?.totalCents ?? 0;
+  const inflowCents =
+    data?.find((s) => s.transactionType === "DEPOSIT")?.totalCents ?? 0;
   const outflowCents =
     (data?.find((s) => s.transactionType === "WITHDRAW")?.totalCents ?? 0) +
     (data?.find((s) => s.transactionType === "TRANSFER")?.totalCents ?? 0);
