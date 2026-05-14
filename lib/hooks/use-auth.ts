@@ -17,11 +17,11 @@ export function useLogin() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: LoginRequest) => login(data),
-    onSuccess: async () => {
+    mutationFn: async (data: LoginRequest) => {
+      await login(data);
       await queryClient.invalidateQueries({ queryKey: ["me"] });
-      router.replace("/dashboard");
     },
+    onSuccess: () => router.replace("/dashboard"),
   });
 }
 
@@ -30,11 +30,11 @@ export function useRegister() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: RegisterRequest) => register(data),
-    onSuccess: async () => {
+    mutationFn: async (data: RegisterRequest) => {
+      await register(data);
       await queryClient.invalidateQueries({ queryKey: ["me"] });
-      router.replace("/dashboard");
     },
+    onSuccess: () => router.replace("/dashboard"),
   });
 }
 
