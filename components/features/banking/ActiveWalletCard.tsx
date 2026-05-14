@@ -64,7 +64,7 @@ export function ActiveWalletCard<T extends FieldValues>({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="flex items-center justify-center bg-primary/10 h-12 w-12 rounded-full text-primary">
-                <AccountBalanceWalletIcon className="h-5 w-5" />
+                <AccountBalanceWalletIcon style={{ fontSize: 20, width: 20, height: 20 }} />
               </span>
               <div>
                 <p className="font-semibold text-xl">

@@ -36,7 +36,7 @@ const CARD_CONFIGS: CardConfig[] = [
     suffix: "Withdrawals",
     getValue: (_d, withdrawals, _n, currency) =>
       formatCurrency(withdrawals, currency),
-    icon: <AccountBalanceWalletIcon className="h-3.5 w-3.5 text-foreground" />,
+    icon: <AccountBalanceWalletIcon className="text-foreground" style={{ fontSize: 24, width: 24, height: 24 }} />,
     iconBg: "bg-accent",
   },
   {

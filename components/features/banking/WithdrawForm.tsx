@@ -195,7 +195,7 @@ function WithdrawFormInner({ initialWalletId }: { initialWalletId: string }) {
                       className="flex-1 flex items-center w-full gap-3 p-4 rounded-2xl border-2 transition-colors border-primary"
                     >
                       <span className="flex items-center justify-center bg-primary/10 h-10 w-10 rounded-full text-primary shrink-0">
-                        <AccountBalanceWalletIcon className="h-4 w-4" />
+                        <AccountBalanceWalletIcon style={{ fontSize: 16, width: 16, height: 16 }} />
                       </span>
                       <div className="text-left flex-1">
                         <p className="font-semibold text-sm">Test service</p>

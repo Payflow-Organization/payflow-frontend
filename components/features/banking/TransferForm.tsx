@@ -106,7 +106,7 @@ function TransferFormInner({ initialWalletId }: { initialWalletId: string }) {
               {formatCurrency(balanceCents, sourceWallet?.currency ?? "GBP")}
             </p>
             <div className="absolute right-6 top-1/2 -translate-y-1/2 bg-primary-foreground/10 p-3 rounded-full">
-              <AccountBalanceWalletIcon className="h-6 w-6 text-primary-foreground" />
+              <AccountBalanceWalletIcon className="text-primary-foreground" style={{ fontSize: 24, width: 24, height: 24 }} />
             </div>
           </div>
 

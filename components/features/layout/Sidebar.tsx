@@ -16,10 +16,10 @@ const navLinks = [
     label: "Dashboard",
   },
   { href: "/banking", icon: <Landmark />, label: "Banking" },
-  { href: "/analytics", icon: <TimelineOutlinedIcon />, label: "Analytics" },
+  { href: "/analytics", icon: <TimelineOutlinedIcon style={{ fontSize: 20, width: 20, height: 20 }} />, label: "Analytics" },
   {
     href: "/transactions",
-    icon: <ReceiptLongOutlinedIcon />,
+    icon: <ReceiptLongOutlinedIcon style={{ fontSize: 20, width: 20, height: 20 }} />,
     label: "Transactions",
   },
   {
