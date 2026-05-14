@@ -3,10 +3,6 @@ export type TransactionStatus = "PENDING" | "SUCCESS" | "FAILED";
 export type TransactionType = "DEPOSIT" | "WITHDRAW" | "TRANSFER";
 export type EntryType = "DEBIT" | "CREDIT";
 
-export interface AuthResponse {
-  email: string;
-}
-
 export interface UserProfile {
   id: string;
   email: string;

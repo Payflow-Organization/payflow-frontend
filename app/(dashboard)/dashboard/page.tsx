@@ -1,17 +1,30 @@
 "use client";
 
-import { useSpendingByCategory } from "@/lib/hooks/use-analytics";
+import {
+  useSpendingByCategory,
+  useMonthlySummary,
+} from "@/lib/hooks/use-analytics";
 import { useWallets } from "@/lib/hooks/use-wallet";
+import { useRecentTransactions } from "@/lib/hooks/use-transactions";
 import { useSearchParams } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import SavingsOutlinedIcon from "@mui/icons-material/SavingsOutlined";
 import { TrendingUp } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Suspense } from "react";
+import { startOfMonth, endOfMonth, format, subMonths } from "date-fns";
+import { AnalyticsChart } from "@/components/features/analytics/chart/AnalyticsChart";
+import { StatCard } from "@/components/features/dashboard/StatCard";
+import { CurrentStatus } from "@/components/features/dashboard/CurrentStatus";
+import { RecentActivity } from "@/components/features/dashboard/RecentActivity";
 
 const today = new Date().toISOString().split("T")[0];
-const allTimeFrom = "1970-01-01";
+const currentMonthStr = format(new Date(), "yyyy-MM");
+const prevMonthStr = format(subMonths(new Date(), 1), "yyyy-MM");
+const currentMonthRange = {
+  from: startOfMonth(new Date()),
+  to: endOfMonth(new Date()),
+};
 
 export default function Page() {
   return (
@@ -25,37 +38,44 @@ function DashboardContent() {
   const walletId = useSearchParams().get("walletId") ?? "";
   const { data: wallets, isLoading: isWalletsLoading } = useWallets();
 
-  const { data: spending, isLoading: isSpendingLoading } =
-    useSpendingByCategory(walletId, allTimeFrom, today);
-
   const activeWallet = wallets?.find((w) => w.id === walletId) ?? wallets?.[0];
+  const resolvedWalletId = walletId || (activeWallet?.id ?? "");
   const currency = activeWallet?.currency ?? "GBP";
+  const allTimeFrom = "1970-01-01";
 
-  const netWorth = activeWallet?.balance ?? 0;
-  const totalDeposits =
-    spending?.find((s) => s.transactionType === "DEPOSIT")?.totalCents ?? 0;
-  const totalWithdrawals =
-    spending?.find((s) => s.transactionType === "WITHDRAW")?.totalCents ?? 0;
+  const { data: currentSummary, isLoading: isCurrentSummaryLoading } =
+    useMonthlySummary(resolvedWalletId, currentMonthStr);
+  const { data: prevSummary } = useMonthlySummary(resolvedWalletId, prevMonthStr);
 
-  const isLoading = isWalletsLoading || isSpendingLoading;
+  const { data: spending } =
+    useSpendingByCategory(resolvedWalletId, allTimeFrom, today);
+  const totalDeposits = currentSummary?.totalDepositsCents ?? 0;
+  const totalWithdrawals = currentSummary?.totalWithdrawalsCents ?? 0;
+
+  const { data: recentTx = [], isLoading: isTxLoading } = useRecentTransactions(
+    resolvedWalletId,
+    5,
+  );
+
+  const isLoading = isWalletsLoading || isCurrentSummaryLoading;
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-6">
         <StatCard
-          label="Total Net Worth"
-          value={formatCurrency(netWorth, currency)}
+          label="Wallet Balance"
+          value={formatCurrency(activeWallet?.balance ?? 0, currency)}
           icon={<PaymentsOutlinedIcon className="-scale-x-100" />}
           isLoading={isLoading}
         />
         <StatCard
-          label="Total Deposits"
+          label="Monthly Deposits"
           value={formatCurrency(totalDeposits, currency)}
           icon={<TrendingUp />}
           isLoading={isLoading}
         />
         <StatCard
-          label="Total Withdrawals"
+          label="Monthly Withdrawals"
           value={formatCurrency(totalWithdrawals, currency)}
           icon={<SavingsOutlinedIcon />}
           isLoading={isLoading}
@@ -64,67 +84,54 @@ function DashboardContent() {
 
       <div className="flex gap-6 items-start">
         <div className="flex-[2] flex flex-col gap-6">
-          <div className="rounded-2xl border border-border bg-background p-6 h-[340px]">
-            <h2 className="text-sm font-medium text-muted-foreground mb-4">
-              Wealth Trajectory
-            </h2>
-          </div>
-          <div className="rounded-2xl border border-border bg-background p-6 h-[340px]">
-            <h2 className="text-sm font-medium text-muted-foreground mb-4">
-              Recent Activity
-            </h2>
-          </div>
+          <AnalyticsChart
+            walletId={resolvedWalletId}
+            period="Monthly"
+            dateRange={currentMonthRange}
+            currency={currency}
+            height={280}
+            viewMoreHref={`/analytics?walletId=${resolvedWalletId}`}
+          />
+          <RecentActivity
+            transactions={recentTx}
+            currency={currency}
+            walletId={resolvedWalletId}
+            isLoading={isTxLoading}
+          />
         </div>
 
-        <div className="flex-[1] flex flex-col gap-6">
-          <div className="rounded-2xl border border-border bg-background p-6 h-[400px]">
-            <h2 className="text-sm font-medium text-muted-foreground mb-4">
-              Current Status
-            </h2>
-          </div>
+        <div className="flex-1 flex flex-col gap-6">
+          <CurrentStatus
+            currentSummary={currentSummary}
+            prevSummary={prevSummary}
+            allTimeWithdrawalsCents={totalWithdrawals}
+            currency={currency}
+            isLoading={isCurrentSummaryLoading}
+          />
           <div className="rounded-2xl border border-border bg-background p-6 h-[220px]">
-            <h2 className="text-sm font-medium text-muted-foreground mb-4">
+            <h2 className="text-xl font-medium text-muted-foreground mb-4">
               Wallet Details
             </h2>
+            <div>
+              {[
+                ["Wallet ID", `W-...${activeWallet?.id.slice(-4) ?? "N/A"}`],
+                ["Currency", currency],
+                [
+                  "Created At",
+                  activeWallet
+                    ? format(new Date(activeWallet.createdAt), "MMM d, yyyy")
+                    : "N/A",
+                ],
+              ].map(([key, value]) => (
+                <div key={key} className="flex justify-between py-2">
+                  <span className="text-sm text-muted-foreground">{key}</span>
+                  <span className="text-sm font-medium">{value}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  icon,
-  isLoading,
-}: {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  isLoading?: boolean;
-}) {
-  return (
-    <div className="rounded-2xl border border-border bg-background px-6 h-24 flex gap-4 items-center">
-      {isLoading ? (
-        <>
-          <Skeleton className="h-12 w-12 rounded-full" />
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-7 w-32" />
-          </div>
-        </>
-      ) : (
-        <>
-          <span className="flex items-center bg-primary/10 p-3 rounded-full text-primary">
-            {icon}
-          </span>
-          <div>
-            <p className="text-sm text-muted-foreground uppercase">{label}</p>
-            <p className="text-2xl font-semibold">{value}</p>
-          </div>
-        </>
-      )}
     </div>
   );
 }

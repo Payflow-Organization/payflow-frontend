@@ -6,18 +6,21 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { WalletSwitcher } from "../wallet/WalletSwitcher";
 import { formatCurrency } from "@/lib/utils";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Loader2, Lock } from "lucide-react";
 import type {
   ControllerRenderProps,
   FieldValues,
   Path,
   FieldError as RHFFieldError,
 } from "react-hook-form";
+import { getDemoFlags } from "@/lib/demo-flags";
+import type { WalletStatus } from "@/lib/types";
 
 type Wallet = {
   id: string;
   currency: string;
   balance: number;
+  status?: WalletStatus;
 };
 
 type ActiveWalletCardProps<T extends FieldValues> = {
@@ -25,6 +28,7 @@ type ActiveWalletCardProps<T extends FieldValues> = {
   field: ControllerRenderProps<T, Path<T>>;
   error?: RHFFieldError;
   invalid: boolean;
+  isSettling?: boolean;
 };
 
 export function ActiveWalletCard<T extends FieldValues>({
@@ -32,7 +36,12 @@ export function ActiveWalletCard<T extends FieldValues>({
   field,
   error,
   invalid,
+  isSettling = false,
 }: ActiveWalletCardProps<T>) {
+  const isFrozenByDemo = wallet?.id ? getDemoFlags().frozenWalletId === wallet.id : false;
+  const isFrozen = isFrozenByDemo || (wallet?.status && wallet.status !== "ACTIVE");
+  const statusLabel = isFrozenByDemo ? "FROZEN (demo)" : wallet?.status;
+
   return (
     <Field data-invalid={invalid}>
       <Card className="rounded-2xl border border-border">
@@ -41,9 +50,16 @@ export function ActiveWalletCard<T extends FieldValues>({
             <FieldLabel className="text-xs text-muted-foreground uppercase tracking-wide">
               Active Wallet
             </FieldLabel>
-            <span className="text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded-full">
-              {wallet?.currency ?? "GBP"}
-            </span>
+            <div className="flex items-center gap-2">
+              {isFrozen && (
+                <span className="flex items-center gap-1 text-xs font-bold bg-destructive/10 text-destructive px-2 py-1 rounded-full">
+                  <Lock size={10} /> {statusLabel}
+                </span>
+              )}
+              <span className="text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded-full">
+                {wallet?.currency ?? "GBP"}
+              </span>
+            </div>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -55,13 +71,17 @@ export function ActiveWalletCard<T extends FieldValues>({
                   {`${wallet?.currency} wallet`} (....
                   {wallet?.id?.slice(-4) ?? "0000"})
                 </p>
-                <p className="text-sm font-normal text-muted-foreground -mt-0.5">
-                  Current Balance:{" "}
-                  {formatCurrency(
-                    wallet?.balance ?? 0,
-                    wallet?.currency ?? "GBP",
-                  )}
-                </p>
+                {isSettling ? (
+                  <p className="text-sm text-amber-600 flex items-center gap-1 -mt-0.5">
+                    <Loader2 size={12} className="animate-spin" />
+                    Balance updating…
+                  </p>
+                ) : (
+                  <p className="text-sm font-normal text-muted-foreground -mt-0.5">
+                    Current Balance:{" "}
+                    {formatCurrency(wallet?.balance ?? 0, wallet?.currency ?? "GBP")}
+                  </p>
+                )}
               </div>
             </div>
             <WalletSwitcher
@@ -76,6 +96,11 @@ export function ActiveWalletCard<T extends FieldValues>({
               }
             />
           </div>
+          {isFrozen && (
+            <div className="mt-3 rounded-lg bg-destructive/5 border border-destructive/20 px-3 py-2 text-xs text-destructive">
+              This wallet is {statusLabel?.toLowerCase()}. Transactions are not permitted.
+            </div>
+          )}
           {invalid && error && <FieldError errors={[error]} />}
         </CardContent>
       </Card>

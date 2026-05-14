@@ -8,6 +8,7 @@ import type {
   TransferRequest,
   PaginatedResponse,
 } from "@/lib/types";
+import { getDemoFlags, setDemoFlag } from "@/lib/demo-flags";
 
 const CURRENCIES = ["GBP", "EUR", "USD"];
 const TYPES: TransactionType[] = ["DEPOSIT", "WITHDRAW", "TRANSFER"];
@@ -16,6 +17,9 @@ const STATUSES: TransactionStatus[] = [
 ];
 
 const transactionPool = new Map<string, Transaction[]>();
+const idempotencyCache = new Map<string, Transaction>();
+// Per-wallet amount locked by in-flight withdrawals — simulates SERIALIZABLE row lock
+const withdrawLock = new Map<string, number>();
 
 function generatePool(walletId: string): Transaction[] {
   const otherIds = Array.from({ length: 6 }, () => crypto.randomUUID());
@@ -73,13 +77,19 @@ export async function mockGetTransactions(
 
 export async function mockGetSpendingByCategory(
   walletId: string,
+  from?: string,
+  to?: string,
 ): Promise<SpendingByCategory[]> {
   await new Promise((resolve) => setTimeout(resolve, 350));
 
   if (!transactionPool.has(walletId)) {
     transactionPool.set(walletId, generatePool(walletId));
   }
-  const all = transactionPool.get(walletId)!.filter((tx) => tx.status === "SUCCESS");
+  const fromMs = from ? new Date(from).getTime() : -Infinity;
+  const toMs = to ? new Date(to + "T23:59:59Z").getTime() : Infinity;
+  const all = transactionPool.get(walletId)!.filter(
+    (tx) => tx.status === "SUCCESS" && new Date(tx.createdAt).getTime() >= fromMs && new Date(tx.createdAt).getTime() <= toMs,
+  );
 
   const grouped = new Map<string, { totalCents: number; count: number }>();
   for (const tx of all) {
@@ -96,6 +106,48 @@ export async function mockGetSpendingByCategory(
   }));
 }
 
+export async function mockGetRecentTransactions(
+  walletId: string,
+  limit: number,
+): Promise<Transaction[]> {
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  if (!transactionPool.has(walletId)) {
+    transactionPool.set(walletId, generatePool(walletId));
+  }
+  return transactionPool.get(walletId)!.slice(0, limit);
+}
+
+export function getTransactionPool(walletId: string): Transaction[] {
+  if (!transactionPool.has(walletId)) transactionPool.set(walletId, generatePool(walletId));
+  return transactionPool.get(walletId)!;
+}
+
+export function resetTransactionPool() {
+  transactionPool.clear();
+  idempotencyCache.clear();
+  withdrawLock.clear();
+}
+
+export function primePool(walletId: string, txs: Transaction[]) {
+  transactionPool.set(walletId, [...txs]);
+}
+
+function checkDemoFailure() {
+  const flags = getDemoFlags();
+  if (flags.forceNextFailure) {
+    setDemoFlag("forceNextFailure", false);
+    throw new Error("Transaction failed (demo: forced failure)");
+  }
+}
+
+function checkWalletFrozen(walletId: string) {
+  const flags = getDemoFlags();
+  if (flags.frozenWalletId === walletId) {
+    throw Object.assign(new Error("WALLET_FROZEN"), { code: "WALLET_FROZEN" });
+  }
+}
+
 function insertIntoPool(walletId: string, tx: Transaction) {
   if (!transactionPool.has(walletId)) {
     transactionPool.set(walletId, generatePool(walletId));
@@ -107,6 +159,9 @@ export async function mockCreateDeposit(
   data: DepositRequest,
 ): Promise<Transaction> {
   await new Promise((resolve) => setTimeout(resolve, 900));
+  checkDemoFailure();
+  checkWalletFrozen(data.toWalletId);
+  if (idempotencyCache.has(data.idempotencyKey)) return idempotencyCache.get(data.idempotencyKey)!;
 
   const tx: Transaction = {
     id: crypto.randomUUID(),
@@ -119,6 +174,7 @@ export async function mockCreateDeposit(
     createdAt: new Date().toISOString(),
   };
   insertIntoPool(data.toWalletId, tx);
+  idempotencyCache.set(data.idempotencyKey, tx);
   return tx;
 }
 
@@ -126,6 +182,9 @@ export async function mockCreateWithdraw(
   data: WithdrawRequest,
 ): Promise<Transaction> {
   await new Promise((resolve) => setTimeout(resolve, 900));
+  checkDemoFailure();
+  checkWalletFrozen(data.fromWalletId);
+  if (idempotencyCache.has(data.idempotencyKey)) return idempotencyCache.get(data.idempotencyKey)!;
 
   const tx: Transaction = {
     id: crypto.randomUUID(),
@@ -138,6 +197,7 @@ export async function mockCreateWithdraw(
     createdAt: new Date().toISOString(),
   };
   insertIntoPool(data.fromWalletId, tx);
+  idempotencyCache.set(data.idempotencyKey, tx);
   return tx;
 }
 
@@ -145,6 +205,9 @@ export async function mockCreateTransfer(
   data: TransferRequest,
 ): Promise<Transaction> {
   await new Promise((resolve) => setTimeout(resolve, 900));
+  checkDemoFailure();
+  checkWalletFrozen(data.fromWalletId);
+  if (idempotencyCache.has(data.idempotencyKey)) return idempotencyCache.get(data.idempotencyKey)!;
 
   const tx: Transaction = {
     id: crypto.randomUUID(),
@@ -157,5 +220,41 @@ export async function mockCreateTransfer(
     createdAt: new Date().toISOString(),
   };
   insertIntoPool(data.fromWalletId, tx);
+  insertIntoPool(data.toWalletId, tx);
+  idempotencyCache.set(data.idempotencyKey, tx);
   return tx;
+}
+
+// Scenario-specific: simulates SERIALIZABLE isolation for concurrent withdrawal demo.
+// Both calls start simultaneously; the second one sees the lock and fails with INSUFFICIENT_FUNDS.
+export async function mockScenarioWithdraw(
+  walletId: string,
+  amountCents: number,
+  balanceCents: number,
+  currency: string,
+): Promise<Transaction> {
+  await new Promise((r) => setTimeout(r, 300));
+
+  const locked = withdrawLock.get(walletId) ?? 0;
+  if (amountCents > balanceCents - locked) {
+    throw Object.assign(new Error("INSUFFICIENT_FUNDS"), {
+      code: "INSUFFICIENT_FUNDS",
+      availableCents: balanceCents - locked,
+    });
+  }
+
+  withdrawLock.set(walletId, locked + amountCents);
+  await new Promise((r) => setTimeout(r, 150));
+  withdrawLock.set(walletId, (withdrawLock.get(walletId) ?? amountCents) - amountCents);
+
+  return {
+    id: crypto.randomUUID(),
+    fromWalletId: walletId,
+    toWalletId: null,
+    type: "WITHDRAW",
+    amount: amountCents,
+    currency,
+    status: "SUCCESS",
+    createdAt: new Date().toISOString(),
+  };
 }

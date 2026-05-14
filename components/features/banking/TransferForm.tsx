@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { formatCurrency, formatCurrencyCompact } from "@/lib/utils";
-import { Check, CheckCircle, ShieldCheck, User, Wallet } from "lucide-react";
-import { useRef, useState } from "react";
+import { CheckCircle, ShieldCheck, User } from "lucide-react";
+import { useRef } from "react";
 import { useCreateTransfer } from "@/lib/hooks/use-transactions";
+import { getDemoFlags } from "@/lib/demo-flags";
 import { Skeleton } from "@/components/ui/skeleton";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const PRESET_AMOUNTS = [1000, 5000, 10000];
 const MAX_TRANSFER_AMOUNT_CENTS = 100_000_000;
@@ -23,10 +23,6 @@ function TransferFormInner({ initialWalletId }: { initialWalletId: string }) {
   const { data: wallets } = useWallets();
   const inputRef = useRef<HTMLInputElement>(null);
   const idempotencyKey = useRef(crypto.randomUUID());
-  const [destinationType, setDestinationType] = useState<"own" | "other">(
-    "own",
-  );
-
   const transfer = useCreateTransfer();
   const transferSchema = z
     .object({
@@ -45,7 +41,6 @@ function TransferFormInner({ initialWalletId }: { initialWalletId: string }) {
             wallets?.find((w) => w.id === initialWalletId)?.currency ?? "GBP",
           )}`,
         ),
-      destinationType: z.enum(["own", "other"]),
       destinationWalletId: z
         .string()
         .min(1, "Please select a destination")
@@ -63,7 +58,6 @@ function TransferFormInner({ initialWalletId }: { initialWalletId: string }) {
     defaultValues: {
       sourceWalletId: initialWalletId,
       amountCents: 0,
-      destinationType: "own",
       destinationWalletId: "",
     },
   });
@@ -73,12 +67,13 @@ function TransferFormInner({ initialWalletId }: { initialWalletId: string }) {
     wallets?.find((w) => w.id === sourceWalletId) ?? wallets?.[0];
   const amountCents = form.watch("amountCents") || 0;
   const destinationWalletId = form.watch("destinationWalletId");
-  const destinationWallet = wallets?.find((w) => w.id === destinationWalletId);
   const balanceCents = sourceWallet?.balance ?? 0;
-  const resolvedSourceId = sourceWallet?.id ?? "";
-  const ownWallets = wallets?.filter((w) => w.id !== resolvedSourceId) ?? [];
+  const isSourceFrozen =
+    sourceWallet?.status === "FROZEN" ||
+    getDemoFlags().frozenWalletId === sourceWallet?.id;
 
   async function onSubmit(values: TransferFormValues) {
+    if (isSourceFrozen) { transfer.reset(); return; }
     await transfer.mutateAsync({
       fromWalletId: values.sourceWalletId,
       toWalletId: values.destinationWalletId,
@@ -90,7 +85,6 @@ function TransferFormInner({ initialWalletId }: { initialWalletId: string }) {
     form.reset({
       sourceWalletId: values.sourceWalletId,
       amountCents: 0,
-      destinationType: "own",
       destinationWalletId: "",
     });
     if (inputRef.current) inputRef.current.value = "";
@@ -210,87 +204,17 @@ function TransferFormInner({ initialWalletId }: { initialWalletId: string }) {
                       Destination
                     </FieldLabel>
 
-                    <Tabs
-                      value={destinationType}
-                      onValueChange={(v) => {
-                        setDestinationType(v as "own" | "other");
-                        form.setValue("destinationType", v as "own" | "other");
-                        field.onChange("");
-                      }}
-                      className="w-full pt-5"
-                    >
-                      <TabsList className="w-full bg-transparent gap-2">
-                        <TabsTrigger
-                          value="own"
-                          className="py-6 flex-1 gap-2 border-primary data-[state=active]:bg-primary/5 data-[state=active]:border-primary rounded-full font-normal"
-                        >
-                          <Wallet size={14} /> Own Wallet
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="other"
-                          className="py-6 flex-1 gap-2 border-primary data-[state=active]:bg-primary/5 data-[state=active]:border-primary rounded-full font-normal"
-                        >
-                          <User size={14} /> Another User
-                        </TabsTrigger>
-                      </TabsList>
-
-                      <TabsContent value="own" className="space-y-3 mt-4">
-                        <p className="text-sm text-muted-foreground">
-                          Select Target Account
-                        </p>
-                        {ownWallets.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">
-                            No other wallets available.
-                          </p>
-                        ) : (
-                          ownWallets.map((w) => (
-                            <button
-                              key={w.id}
-                              type="button"
-                              onClick={() => field.onChange(w.id)}
-                              className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-colors w-full ${
-                                field.value === w.id
-                                  ? "border-primary bg-primary/5"
-                                  : "border-border"
-                              }`}
-                            >
-                              <span className="flex items-center justify-center bg-primary/10 h-11 w-11 rounded-full text-primary shrink-0">
-                                <AccountBalanceWalletIcon className="h-5 w-5" />
-                              </span>
-                              <div className="text-left flex-1">
-                                <p className="font-semibold text-sm">
-                                  {w.currency} wallet
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  Ending in .... {w.id.slice(-4)}
-                                </p>
-                              </div>
-                              {field.value === w.id && (
-                                <div className="h-6 w-6 rounded-full border-2 border-primary flex items-center justify-center shrink-0">
-                                  <Check
-                                    size={12}
-                                    className="text-primary"
-                                    strokeWidth={5}
-                                  />
-                                </div>
-                              )}
-                            </button>
-                          ))
-                        )}
-                      </TabsContent>
-
-                      <TabsContent value="other" className="space-y-2 mt-4">
-                        <p className="text-sm text-muted-foreground">
-                          Enter recipient wallet ID
-                        </p>
-                        <Input
-                          placeholder="e.g. 032ed816-17d1-4797-a55e-c8a15abd3b64"
-                          aria-invalid={fieldState.invalid}
-                          onChange={(e) => field.onChange(e.target.value)}
-                          className="rounded-xl h-12"
-                        />
-                      </TabsContent>
-                    </Tabs>
+                    <div className="space-y-2 mt-4">
+                      <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                        <User size={13} /> Enter recipient wallet ID
+                      </p>
+                      <Input
+                        placeholder="e.g. 032ed816-17d1-4797-a55e-c8a15abd3b64"
+                        aria-invalid={fieldState.invalid}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        className="rounded-xl h-12"
+                      />
+                    </div>
 
                     {fieldState.invalid && (
                       <FieldError errors={[fieldState.error]} />
@@ -334,25 +258,12 @@ function TransferFormInner({ initialWalletId }: { initialWalletId: string }) {
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">
                       → To
                     </p>
-                    {destinationType === "own" && destinationWallet ? (
-                      <>
-                        <p className="font-semibold">
-                          {destinationWallet.currency} wallet
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          PayFlow Internal Transfer
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="font-semibold text-xs break-all">
-                          {destinationWalletId}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          External Transfer
-                        </p>
-                      </>
-                    )}
+                    <p className="font-semibold text-xs break-all">
+                      {destinationWalletId}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      External Transfer
+                    </p>
                   </div>
                 )}
 
@@ -370,7 +281,7 @@ function TransferFormInner({ initialWalletId }: { initialWalletId: string }) {
                 </div>
               </div>
 
-              {transfer.isSuccess && (
+              {transfer.isSuccess && !isSourceFrozen && (
                 <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-0.5">
                   <div className="flex items-center gap-2 text-primary font-semibold text-sm">
                     <CheckCircle size={14} />
@@ -383,12 +294,19 @@ function TransferFormInner({ initialWalletId }: { initialWalletId: string }) {
               )}
               {transfer.isError && (
                 <div className="rounded-xl bg-destructive/5 border border-destructive/20 p-3 text-sm text-destructive">
-                  Transfer failed. Please try again.
+                  {(transfer.error as { code?: string })?.code === "WALLET_FROZEN"
+                    ? "Source wallet is frozen — transfer rejected by the server."
+                    : "Transfer failed. Please try again."}
+                </div>
+              )}
+              {isSourceFrozen && (
+                <div className="rounded-xl bg-destructive/5 border border-destructive/20 p-3 text-sm text-destructive">
+                  Source wallet is frozen. Transfers are not allowed. Contact support to unfreeze.
                 </div>
               )}
               <Button
                 type="submit"
-                disabled={!form.formState.isValid || transfer.isPending}
+                disabled={!form.formState.isValid || transfer.isPending || isSourceFrozen}
                 className="w-full rounded-full h-12 text-base shadow-2xl"
               >
                 {transfer.isPending ? "Processing..." : "Confirm Transfer →"}

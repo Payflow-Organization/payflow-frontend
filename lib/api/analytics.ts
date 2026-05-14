@@ -43,3 +43,36 @@ export async function getSpendingByCategory(
   );
   return res.data;
 }
+
+function triggerBlobDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function downloadStatementCSV(
+  walletId: string,
+  from: string,
+  to: string,
+): Promise<void> {
+  const res = await client.get<Blob>("/analytics/export/csv", {
+    params: { walletId, from, to },
+    responseType: "blob",
+  });
+  triggerBlobDownload(res.data, `statement-${from}-${to}.csv`);
+}
+
+export async function downloadStatementPDF(
+  walletId: string,
+  from: string,
+  to: string,
+): Promise<void> {
+  const res = await client.get<Blob>("/analytics/export/pdf", {
+    params: { walletId, from, to },
+    responseType: "blob",
+  });
+  triggerBlobDownload(res.data, `statement-${from}-${to}.pdf`);
+}

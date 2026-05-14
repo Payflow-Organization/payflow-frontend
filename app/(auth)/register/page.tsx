@@ -14,9 +14,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRegister } from "@/lib/hooks/use-auth";
+import { useRegister, useMe } from "@/lib/hooks/use-auth";
 import { AxiosError } from "axios";
+
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
 
 const formSchema = z
   .object({
@@ -32,10 +35,10 @@ const formSchema = z
 
 export default function Page() {
   const { mutate: register, isPending, error } = useRegister();
+  const { data: user, isLoading: isCheckingAuth } = useMe();
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const router = useRouter();
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -45,6 +48,11 @@ export default function Page() {
       confirmPassword: "",
     },
   });
+
+  if (!USE_MOCK && !isCheckingAuth && user) {
+    router.replace("/dashboard");
+    return null;
+  }
 
   function onSubmit(data: z.infer<typeof formSchema>) {
     const { confirmPassword, ...payload } = data;
@@ -187,12 +195,8 @@ export default function Page() {
         <hr className="h-2 w-full" />
         <div className="flex gap-1 items-center text-muted font-medium text-sm">
           Already have an account?{" "}
-          <Button
-            variant="link"
-            className="px-0"
-            onClick={() => router.push("/login")}
-          >
-            Sign In
+          <Button variant="link" className="px-0" asChild>
+            <Link href="/login">Sign In</Link>
           </Button>
         </div>
       </CardFooter>

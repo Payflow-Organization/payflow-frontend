@@ -13,6 +13,7 @@ import { formatCurrency, formatCurrencyCompact } from "@/lib/utils";
 import { CheckCircle, InfoIcon } from "lucide-react";
 import { useRef } from "react";
 import { useCreateWithdrawal } from "@/lib/hooks/use-transactions";
+import { getDemoFlags } from "@/lib/demo-flags";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -55,8 +56,12 @@ function WithdrawFormInner({ initialWalletId }: { initialWalletId: string }) {
     wallets?.find((w) => w.id === selectedWalletId) ?? wallets?.[0];
   const amountCents = form.watch("amountCents") || 0;
   const balanceCents = wallet?.balance ?? 0;
+  const isFrozen =
+    wallet?.status === "FROZEN" ||
+    getDemoFlags().frozenWalletId === wallet?.id;
 
   async function onSubmit(values: WithdrawFormValues) {
+    if (isFrozen) { withdraw.reset(); return; }
     await withdraw.mutateAsync({
       fromWalletId: values.walletId,
       amount: values.amountCents,
@@ -245,7 +250,7 @@ function WithdrawFormInner({ initialWalletId }: { initialWalletId: string }) {
                   Funds typically arrive within 24-72 hours.
                 </CardContent>
               </Card>
-              {withdraw.isSuccess && (
+              {withdraw.isSuccess && !isFrozen && (
                 <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-0.5">
                   <div className="flex items-center gap-2 text-primary font-semibold text-sm">
                     <CheckCircle size={14} />
@@ -258,12 +263,19 @@ function WithdrawFormInner({ initialWalletId }: { initialWalletId: string }) {
               )}
               {withdraw.isError && (
                 <div className="rounded-xl bg-destructive/5 border border-destructive/20 p-3 text-sm text-destructive">
-                  Withdrawal failed. Please try again.
+                  {(withdraw.error as { code?: string })?.code === "WALLET_FROZEN"
+                    ? "Wallet is frozen — withdrawal rejected by the server."
+                    : "Withdrawal failed. Please try again."}
+                </div>
+              )}
+              {isFrozen && (
+                <div className="rounded-xl bg-destructive/5 border border-destructive/20 p-3 text-sm text-destructive">
+                  This wallet is frozen. Withdrawals are not allowed. Contact support to unfreeze.
                 </div>
               )}
               <Button
                 type="submit"
-                disabled={!form.formState.isValid || withdraw.isPending}
+                disabled={!form.formState.isValid || withdraw.isPending || isFrozen}
                 className="w-full rounded-full h-12 text-base shadow-2xl"
               >
                 {withdraw.isPending ? "Processing..." : "Confirm Withdrawal"}

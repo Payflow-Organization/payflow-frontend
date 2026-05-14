@@ -97,6 +97,7 @@ function TransactionsContent() {
         totalPages={data?.totalPages ?? 0}
         totalElements={data?.totalElements ?? 0}
         onPageChange={setPage}
+        walletId={walletId}
       />
       <TransactionSummaryCards walletId={walletId} />
     </div>

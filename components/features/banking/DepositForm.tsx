@@ -10,8 +10,9 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { useWallets } from "@/lib/hooks/use-wallet";
 import { formatCurrency, formatCurrencyCompact } from "@/lib/utils";
 import { CheckCircle, ShieldCheck, Zap } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useCreateDeposit } from "@/lib/hooks/use-transactions";
+import { getDemoFlags } from "@/lib/demo-flags";
 import { ActiveWalletCard } from "./ActiveWalletCard";
 import Skeleton from "@mui/material/Skeleton";
 
@@ -33,6 +34,8 @@ function DepositFormInner({ initialWalletId }: { initialWalletId: string }) {
   const { data: wallets } = useWallets();
   const inputRef = useRef<HTMLInputElement>(null);
   const idempotencyKey = useRef(crypto.randomUUID());
+  const lastIdempotencyKey = useRef<string>("");
+  const [isSettling, setIsSettling] = useState(false);
   const deposit = useCreateDeposit();
 
   const form = useForm<DepositFormValues>({
@@ -49,10 +52,15 @@ function DepositFormInner({ initialWalletId }: { initialWalletId: string }) {
   const wallet =
     wallets?.find((w) => w.id === selectedWalletId) ?? wallets?.[0];
   const amountCents = form.watch("amountCents") || 0;
+  const isFrozen =
+    wallet?.status === "FROZEN" ||
+    getDemoFlags().frozenWalletId === wallet?.id;
   const processingFeeCents = Math.round(amountCents * PROCESSING_FEE_RATE);
   const totalCents = amountCents + processingFeeCents;
 
   async function onSubmit(values: DepositFormValues) {
+    if (isFrozen) { deposit.reset(); return; }
+    lastIdempotencyKey.current = idempotencyKey.current;
     await deposit.mutateAsync({
       toWalletId: values.walletId,
       amount: values.amountCents,
@@ -60,12 +68,13 @@ function DepositFormInner({ initialWalletId }: { initialWalletId: string }) {
       idempotencyKey: idempotencyKey.current,
     });
     idempotencyKey.current = crypto.randomUUID();
-    form.reset({
-      walletId: values.walletId,
-      amountCents: 0,
-      paymentMethod: "stripe",
-    });
+    form.reset({ walletId: values.walletId, amountCents: 0, paymentMethod: "stripe" });
     if (inputRef.current) inputRef.current.value = "";
+    const { kafkaLagMs } = getDemoFlags();
+    if (kafkaLagMs > 0) {
+      setIsSettling(true);
+      setTimeout(() => setIsSettling(false), kafkaLagMs);
+    }
   }
 
   return (
@@ -82,6 +91,7 @@ function DepositFormInner({ initialWalletId }: { initialWalletId: string }) {
                 field={field}
                 error={fieldState.error}
                 invalid={fieldState.invalid}
+                isSettling={isSettling}
               />
             )}
           />
@@ -237,25 +247,37 @@ function DepositFormInner({ initialWalletId }: { initialWalletId: string }) {
                   </span>
                 </div>
               </div>
-              {deposit.isSuccess && (
-                <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-0.5">
+              {deposit.isSuccess && !isFrozen && (
+                <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-1">
                   <div className="flex items-center gap-2 text-primary font-semibold text-sm">
                     <CheckCircle size={14} />
                     Deposit Successful
                   </div>
-                  <p className="text-xs text-muted-foreground font-mono break-all">
-                    {deposit.data.id}
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-medium">Tx ID:</span>{" "}
+                    <span className="font-mono break-all">{deposit.data.id}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-medium">Idempotency key:</span>{" "}
+                    <span className="font-mono break-all">{lastIdempotencyKey.current}</span>
                   </p>
                 </div>
               )}
               {deposit.isError && (
                 <div className="rounded-xl bg-destructive/5 border border-destructive/20 p-3 text-sm text-destructive">
-                  Deposit failed. Please try again.
+                  {(deposit.error as { code?: string })?.code === "WALLET_FROZEN"
+                    ? "Wallet is frozen — deposit rejected by the server."
+                    : "Deposit failed. Please try again."}
+                </div>
+              )}
+              {isFrozen && (
+                <div className="rounded-xl bg-destructive/5 border border-destructive/20 p-3 text-sm text-destructive">
+                  This wallet is frozen. Deposits are not allowed. Contact support to unfreeze.
                 </div>
               )}
               <Button
                 type="submit"
-                disabled={!form.formState.isValid || deposit.isPending}
+                disabled={!form.formState.isValid || deposit.isPending || isFrozen}
                 className="w-full rounded-full h-12 text-base shadow-2xl"
               >
                 {deposit.isPending ? "Processing..." : "Continue to Stripe →"}

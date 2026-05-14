@@ -17,11 +17,11 @@ export function useLogin() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: LoginRequest) => login(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["me"] });
-      router.push("/dashboard");
+    mutationFn: async (data: LoginRequest) => {
+      await login(data);
+      await queryClient.invalidateQueries({ queryKey: ["me"] });
     },
+    onSuccess: () => router.replace("/dashboard"),
   });
 }
 
@@ -30,23 +30,22 @@ export function useRegister() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: RegisterRequest) => register(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["me"] });
-      router.push("/dashboard");
+    mutationFn: async (data: RegisterRequest) => {
+      await register(data);
+      await queryClient.invalidateQueries({ queryKey: ["me"] });
     },
+    onSuccess: () => router.replace("/dashboard"),
   });
 }
 
 export function useLogout() {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: logout,
+    mutationFn: async () => {
+      try { await logout(); } catch { /* best-effort — session may already be expired */ }
+    },
     onSuccess: () => {
-      queryClient.clear();
-      router.push("/login");
+      sessionStorage.setItem("logged_out", "1");
+      window.location.replace("/login");
     },
   });
 }
