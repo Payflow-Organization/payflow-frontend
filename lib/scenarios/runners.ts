@@ -1,24 +1,19 @@
 // Scenario runner functions — each is a self-contained async function.
-//
-// HOW TO SWAP FOR REAL BACKEND:
-// Every function has a "// SWAP:" comment showing the exact API call to replace the mock with.
-// The return type (ScenarioResult) stays the same — only the implementation inside changes.
-// The scenarios page calls these functions and renders results; it never changes.
+// Switches between mock and real API based on NEXT_PUBLIC_USE_MOCK.
 
 import type { ScenarioResult } from "./types";
 import { mockCreateDeposit, mockScenarioWithdraw, getTransactionPool } from "@/lib/mocks/transaction";
-import { createWallet } from "@/lib/api/wallets";
+import { createWallet, getWallets } from "@/lib/api/wallets";
 import { createDeposit, createWithdraw, createTransfer } from "@/lib/api/transaction";
 import { formatCurrency } from "@/lib/utils";
+
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // ─── 1. Idempotency ───────────────────────────────────────────────────────────
 // Fires 3 concurrent deposits with identical idempotency key.
 // All 3 must return the same transaction ID — the backend deduplicates.
-//
-// SWAP: replace mockCreateDeposit calls with:
-//   client.post('/transactions/deposit', { ...payload, idempotencyKey: sharedKey })
 export async function runIdempotencyTest(
   walletId: string,
   currency: string,
@@ -27,11 +22,8 @@ export async function runIdempotencyTest(
   const start = Date.now();
 
   const payload = { toWalletId: walletId, amount: 100, currency, idempotencyKey: sharedKey };
-  const [r1, r2, r3] = await Promise.all([
-    mockCreateDeposit(payload),
-    mockCreateDeposit(payload),
-    mockCreateDeposit(payload),
-  ]);
+  const fn = USE_MOCK ? mockCreateDeposit : createDeposit;
+  const [r1, r2, r3] = await Promise.all([fn(payload), fn(payload), fn(payload)]);
 
   const ids = [r1.id, r2.id, r3.id];
   const allSame = ids.every((id) => id === ids[0]);
@@ -59,10 +51,6 @@ export async function runIdempotencyTest(
 // ─── 2. Concurrent Double-Spend ───────────────────────────────────────────────
 // Two withdrawals fired simultaneously, each 60% of balance = 120% combined.
 // SERIALIZABLE isolation must reject the second one with INSUFFICIENT_FUNDS.
-//
-// SWAP: replace mockScenarioWithdraw calls with:
-//   client.post('/transactions/withdraw', { fromWalletId, amount, currency, idempotencyKey })
-//   The real backend handles the race via SELECT FOR UPDATE / serializable tx.
 export async function runDoubleSpend(
   walletId: string,
   balanceCents: number,
@@ -71,14 +59,19 @@ export async function runDoubleSpend(
   const withdrawAmount = Math.round(balanceCents * 0.6);
   const start = Date.now();
 
+  const withdraw60 = USE_MOCK
+    ? (key: string) => mockScenarioWithdraw(walletId, withdrawAmount, balanceCents, currency)
+    : (key: string) => createWithdraw({ fromWalletId: walletId, amount: withdrawAmount, currency, idempotencyKey: key });
+
   const [r1, r2] = await Promise.allSettled([
-    mockScenarioWithdraw(walletId, withdrawAmount, balanceCents, currency),
-    mockScenarioWithdraw(walletId, withdrawAmount, balanceCents, currency),
+    withdraw60(crypto.randomUUID()),
+    withdraw60(crypto.randomUUID()),
   ]);
 
   const succeeded = r1.status === "fulfilled" ? r1.value : r2.status === "fulfilled" ? r2.value : null;
-  const rejected = r1.status === "rejected" ? r1.reason : r2.status === "rejected" ? r2.reason : null;
-  const pass = !!succeeded && !!rejected;
+  const rejectedReason = r1.status === "rejected" ? r1.reason : r2.status === "rejected" ? r2.reason : null;
+  const rejectedMsg = rejectedReason?.response?.data?.code ?? rejectedReason?.response?.data?.message ?? rejectedReason?.code ?? rejectedReason?.message ?? "REJECTED";
+  const pass = !!succeeded && !!rejectedReason;
 
   return {
     status: pass ? "pass" : "fail",
@@ -90,7 +83,7 @@ export async function runDoubleSpend(
       { label: "Each withdrawal", value: `${formatCurrency(withdrawAmount, currency)} (60%)`, status: "neutral" },
       { label: "Combined", value: `${formatCurrency(withdrawAmount * 2, currency)} (120% — overdraft)`, status: "neutral" },
       { label: "Request 1", value: succeeded ? `✓ SUCCESS — tx ${succeeded.id.slice(0, 8)}…` : "✗ REJECTED", status: succeeded ? "pass" : "fail", mono: true },
-      { label: "Request 2", value: rejected?.message ?? (succeeded ? "✗ REJECTED" : "✓ SUCCESS"), status: rejected ? "fail" : "pass" },
+      { label: "Request 2", value: rejectedReason ? `✗ ${rejectedMsg}` : "✓ SUCCESS", status: rejectedReason ? "fail" : "pass", mono: true },
       { label: "Balance integrity", value: pass ? "Preserved — only one withdrawal committed" : "Violated", status: pass ? "pass" : "fail" },
     ],
     durationMs: Date.now() - start,
@@ -137,7 +130,7 @@ export async function runReconciliation(walletId: string, currency: string): Pro
       { label: "Drift", value: drift === 0 ? "£0.00 — clean" : formatCurrency(Math.abs(drift), currency), status: drift === 0 ? "pass" : "fail" },
     ],
     durationMs: Date.now() - start,
-    swapNote: "GET /demo/reconcile/{walletId} → { cachedBalanceCents, ledgerSumCents, driftCents }",
+    swapNote: "ReconciliationService.reconcile() — runs nightly via @Scheduled(cron). Not user-triggerable by design; this scenario simulates the concept.",
   };
 }
 
@@ -176,7 +169,59 @@ export async function runTokenExpiry(): Promise<ScenarioResult> {
   };
 }
 
-// ─── 5. Seed Backend ──────────────────────────────────────────────────────────
+// ─── 5. Overdraft Rejection ───────────────────────────────────────────────────
+// Attempts a withdrawal £100 over the wallet balance.
+// The backend must reject it with INSUFFICIENT_FUNDS — no debit applied.
+export async function runOverdraft(
+  walletId: string,
+  balanceCents: number,
+  currency: string,
+): Promise<ScenarioResult> {
+  const overdraftAmount = balanceCents + 10_000;
+  const start = Date.now();
+
+  try {
+    const fn = USE_MOCK
+      ? () => mockScenarioWithdraw(walletId, overdraftAmount, balanceCents, currency)
+      : () => createWithdraw({ fromWalletId: walletId, amount: overdraftAmount, currency, idempotencyKey: crypto.randomUUID() });
+
+    await fn();
+
+    return {
+      status: "fail",
+      summary: "Expected INSUFFICIENT_FUNDS but withdrawal succeeded — balance protection not enforced.",
+      rows: [
+        { label: "Attempted", value: formatCurrency(overdraftAmount, currency), status: "fail" },
+        { label: "Available", value: formatCurrency(balanceCents, currency), status: "fail" },
+        { label: "Result", value: "✓ SUCCEEDED — should have been rejected", status: "fail" },
+      ],
+      durationMs: Date.now() - start,
+      swapNote: "",
+    };
+  } catch (e: any) {
+    const code = e?.response?.data?.code ?? e?.code ?? e?.message ?? "UNKNOWN";
+    const available = e?.response?.data?.availableCents ?? balanceCents;
+    const pass = code.includes("INSUFFICIENT_FUNDS");
+
+    return {
+      status: pass ? "pass" : "fail",
+      summary: pass
+        ? "Backend rejected the overdraft — INSUFFICIENT_FUNDS, balance unchanged."
+        : `Unexpected error: ${code}`,
+      rows: [
+        { label: "Wallet balance", value: formatCurrency(balanceCents, currency), status: "neutral" },
+        { label: "Attempted withdrawal", value: `${formatCurrency(overdraftAmount, currency)} (balance + ${formatCurrency(10_000, currency)})`, status: "neutral" },
+        { label: "Backend response", value: `✗ ${code}`, mono: true, status: "fail" },
+        { label: "Available at rejection", value: formatCurrency(available, currency), mono: true, status: "neutral" },
+        { label: "Balance integrity", value: pass ? "Preserved — no debit applied" : "Unknown", status: pass ? "pass" : "fail" },
+      ],
+      durationMs: Date.now() - start,
+      swapNote: "POST /transactions/withdraw with amount > balance — balance check inside @Transactional(SERIALIZABLE)",
+    };
+  }
+}
+
+// ─── 6. Seed Backend ──────────────────────────────────────────────────────────
 // Creates 3 wallets (2× GBP, 1× EUR) and fires real deposits, withdrawals, and
 // transfers through the actual API so the UI pages load live data from the backend.
 // Run this once before demoing; data persists in PostgreSQL.
@@ -199,6 +244,32 @@ export async function runSeedBackend(): Promise<ScenarioResult> {
   }
 
   try {
+    // Check existing state first — idempotent by design
+    const existing = await getWallets();
+    const seeded = existing.filter((w) => w.balance > 0);
+
+    if (seeded.length > 0) {
+      return {
+        status: "pass",
+        summary: `Idempotency demonstrated — detected existing data, no write issued. Calling this N times produces the same result as calling it once.`,
+        rows: [
+          { label: "1. Read existing state", value: `GET /wallets → ${existing.length} wallet${existing.length !== 1 ? "s" : ""} returned`, status: "neutral" },
+          { label: "2. Condition check", value: `${seeded.length} wallet${seeded.length !== 1 ? "s" : ""} have balance > 0 — data present`, status: "neutral" },
+          { label: "3. Decision", value: "Skip write — outcome already achieved", status: "pass" },
+          ...seeded.map((w) => ({
+            label: `   ${w.currency} ····${w.id.slice(-4)}`,
+            value: `${formatCurrency(w.balance, w.currency)} · ${w.status}`,
+            mono: true,
+            status: "pass" as const,
+          })),
+          { label: "4. Writes issued", value: "0 — no duplicate wallets, no duplicate transactions", status: "pass" },
+          { label: "Idempotency guarantee", value: "✓ Safe to call any number of times", status: "pass" },
+        ],
+        durationMs: Date.now() - start,
+        swapNote: "Same pattern used in command handlers — check state before acting, never assume a write is needed",
+      };
+    }
+
     const gbp1 = await createWallet({ currency: "GBP" });
     rows.push({ label: "GBP wallet 1", value: `created ····${gbp1.id.slice(-4)}`, mono: true, status: "pass" });
 
@@ -244,10 +315,11 @@ export async function runSeedBackend(): Promise<ScenarioResult> {
       durationMs: Date.now() - start,
       swapNote: "POST /wallets ×3 · POST /transactions/deposit + /withdraw + /transfer ×" + txCount,
     };
-  } catch (e) {
+  } catch (e: any) {
+    const detail = e?.response?.data?.message ?? e?.response?.data?.code ?? e?.message ?? "unknown error";
     return {
       status: "fail",
-      summary: e instanceof Error ? e.message : "Seeding failed — is the backend running and are you logged in?",
+      summary: `Seeding failed: ${detail} — is the backend running and are you logged in?`,
       rows,
       durationMs: Date.now() - start,
       swapNote: "",

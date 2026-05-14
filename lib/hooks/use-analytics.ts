@@ -3,14 +3,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { mockGetSpendingByCategory } from "@/lib/mocks/transaction";
 import { mockGetBalanceHistory, mockGetMonthlySummary } from "@/lib/mocks/analytics";
+import {
+  getMonthlySummary,
+  getBalanceHistory,
+  getSpendingByCategory,
+} from "@/lib/api/analytics";
 import type { SpendingByCategory } from "@/lib/types";
 
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
 const ANALYTICS_STALE_TIME = 5 * 60 * 1000;
 
 export function useMonthlySummary(walletId: string, month: string) {
   return useQuery({
     queryKey: ["analytics", "summary", walletId, month],
-    queryFn: () => mockGetMonthlySummary(walletId, month),
+    queryFn: () =>
+      USE_MOCK
+        ? mockGetMonthlySummary(walletId, month)
+        : getMonthlySummary(walletId, month),
     enabled: !!walletId && !!month,
     staleTime: ANALYTICS_STALE_TIME,
   });
@@ -24,7 +33,10 @@ export function useBalanceHistory(
 ) {
   return useQuery({
     queryKey: ["analytics", "history", walletId, from, to, interval],
-    queryFn: () => mockGetBalanceHistory(walletId, from, to, interval),
+    queryFn: () =>
+      USE_MOCK
+        ? mockGetBalanceHistory(walletId, from, to, interval)
+        : getBalanceHistory(walletId, from, to, interval),
     enabled: !!walletId && !!from && !!to,
     staleTime: ANALYTICS_STALE_TIME,
     // Known limitation: overlapping date ranges are not deduplicated.
@@ -39,7 +51,10 @@ export function useSpendingByCategory(
 ) {
   return useQuery({
     queryKey: ["analytics", "spending", walletId, from, to],
-    queryFn: () => mockGetSpendingByCategory(walletId, from, to),
+    queryFn: () =>
+      USE_MOCK
+        ? mockGetSpendingByCategory(walletId, from, to)
+        : getSpendingByCategory(walletId, from, to),
     enabled: !!walletId,
     staleTime: ANALYTICS_STALE_TIME,
   });

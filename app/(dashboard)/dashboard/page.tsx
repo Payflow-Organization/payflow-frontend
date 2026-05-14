@@ -104,7 +104,7 @@ function DashboardContent() {
           />
         </div>
 
-        <div className="flex-[1] flex flex-col gap-6">
+        <div className="flex-1 flex flex-col gap-6">
           <CurrentStatus
             currentSummary={currentSummary}
             prevSummary={prevSummary}

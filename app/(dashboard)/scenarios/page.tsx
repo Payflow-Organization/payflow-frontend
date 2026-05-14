@@ -9,13 +9,14 @@ import { resetTransactionPool } from "@/lib/mocks/transaction";
 import {
   runIdempotencyTest,
   runDoubleSpend,
+  runOverdraft,
   runReconciliation,
   runTokenExpiry,
   runSeedBackend,
 } from "@/lib/scenarios/runners";
 import {
   Zap, XCircle, Lock, RefreshCw, Info, CheckCircle2,
-  Loader2, ShieldCheck, GitMerge, RotateCcw, KeyRound, Database,
+  Loader2, ShieldCheck, GitMerge, RotateCcw, KeyRound, Database, TrendingDown,
 } from "lucide-react";
 import { ControlRow } from "@/components/features/scenarios/ControlRow";
 import { RunnableScenario } from "@/components/features/scenarios/RunnableScenario";
@@ -38,9 +39,11 @@ export default function ScenariosPage() {
     setFlags(getDemoFlags());
   }
 
+  const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
+
   function handleReset() {
     clearDemoFlags();
-    resetTransactionPool();
+    if (USE_MOCK) resetTransactionPool();
     setFlags(getDemoFlags());
     setResetDone(true);
     setTimeout(() => setResetDone(false), 2000);
@@ -60,9 +63,10 @@ export default function ScenariosPage() {
       <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 flex items-start gap-3 text-sm text-primary">
         <Info size={16} className="mt-0.5 shrink-0" />
         <span>
-          Controls persist in <code className="font-mono text-xs">localStorage</code>.
-          Runnable scenarios execute mock implementations now — each has a{" "}
-          <code className="font-mono text-xs">SWAP:</code> note showing the exact real API call to replace it with.
+          Controls persist in <code className="font-mono text-xs">localStorage</code>.{" "}
+          {USE_MOCK
+            ? <>Runnable scenarios use mock implementations — set <code className="font-mono text-xs">NEXT_PUBLIC_USE_MOCK=false</code> to hit the real backend.</>
+            : <>Runnable scenarios are wired to the real backend.</>}
         </span>
       </div>
 
@@ -81,15 +85,18 @@ export default function ScenariosPage() {
           </div>
         </ControlRow>
 
-        <Separator />
-
-        <ControlRow icon={<XCircle size={16} />} title="Force Next Failure" active={flags.forceNextFailure}
-          description="Next deposit, withdrawal, or transfer throws an error. Auto-clears after one use. Tests the frontend error state and retry flow."
-        >
-          <Button size="sm" variant={flags.forceNextFailure ? "destructive" : "outline"} className="rounded-full h-7 px-3 text-xs" onClick={() => apply("forceNextFailure", !flags.forceNextFailure)}>
-            {flags.forceNextFailure ? "Armed — click to disarm" : "Arm failure"}
-          </Button>
-        </ControlRow>
+        {USE_MOCK && (
+          <>
+            <Separator />
+            <ControlRow icon={<XCircle size={16} />} title="Force Next Failure" active={flags.forceNextFailure}
+              description="Next deposit, withdrawal, or transfer throws an error. Auto-clears after one use. Tests the frontend error state and retry flow."
+            >
+              <Button size="sm" variant={flags.forceNextFailure ? "destructive" : "outline"} className="rounded-full h-7 px-3 text-xs" onClick={() => apply("forceNextFailure", !flags.forceNextFailure)}>
+                {flags.forceNextFailure ? "Armed — click to disarm" : "Arm failure"}
+              </Button>
+            </ControlRow>
+          </>
+        )}
 
         <Separator />
 
@@ -107,9 +114,13 @@ export default function ScenariosPage() {
                 <Button key={w.id} size="sm" variant={isFrozen ? "destructive" : "outline"} className="rounded-full h-7 px-3 text-xs"
                   disabled={freezeWalletMutation.isPending}
                   onClick={async () => {
-                    if (isFrozen) { apply("frozenWalletId", null); return; }
-                    try { await freezeWalletMutation.mutateAsync(w.id); } catch { }
-                    apply("frozenWalletId", w.id);
+                    if (USE_MOCK) {
+                      if (isFrozen) { apply("frozenWalletId", null); return; }
+                      try { await freezeWalletMutation.mutateAsync(w.id); } catch { }
+                      apply("frozenWalletId", w.id);
+                    } else {
+                      if (!isFrozen) await freezeWalletMutation.mutateAsync(w.id).catch(() => {});
+                    }
                   }}
                 >
                   {freezeWalletMutation.isPending && flags.frozenWalletId !== w.id && <Loader2 size={10} className="animate-spin" />}
@@ -126,7 +137,7 @@ export default function ScenariosPage() {
         <RunnableScenario
           icon={<Database size={16} />}
           title="Seed Backend"
-          description="Creates 3 wallets (2× GBP, 1× EUR) and fires real deposits, withdrawals, and transfers through the API. Run once before demoing — data persists in PostgreSQL."
+          description="Creates 3 wallets (2× GBP, 1× EUR) and fires real deposits, withdrawals, and transfers through the API. Idempotent — checks existing wallet state before acting and skips if data is already present. Safe to run multiple times."
           guarantee="Real API — POST /wallets · /transactions/deposit · /withdraw · /transfer"
           badge="LIVE"
           run={runSeedBackend}
@@ -154,6 +165,17 @@ export default function ScenariosPage() {
           guarantee="@Transactional(SERIALIZABLE)"
           disabled={!activeWallet}
           run={() => runDoubleSpend(activeWallet!.id, activeWallet!.balance, activeWallet!.currency)}
+        />
+
+        <Separator />
+
+        <RunnableScenario
+          icon={<TrendingDown size={16} />}
+          title="Overdraft Rejection"
+          description={`Attempts a withdrawal £100 over the wallet balance. The backend must reject it with INSUFFICIENT_FUNDS — no debit applied.`}
+          guarantee="Balance check inside @Transactional(SERIALIZABLE)"
+          disabled={!activeWallet}
+          run={() => runOverdraft(activeWallet!.id, activeWallet!.balance, activeWallet!.currency)}
         />
 
         <Separator />
