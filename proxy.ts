@@ -2,22 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 export function proxy(request: NextRequest) {
   const isDev = process.env.NODE_ENV === "development";
-  const { pathname } = request.nextUrl;
-  const accessToken = request.cookies.get("accessToken")?.value;
-  const hasAccessToken = !!accessToken;
-
-  // Redirect authenticated users away from auth pages
-  if (
-    hasAccessToken &&
-    (pathname.startsWith("/login") || pathname.startsWith("/register"))
-  ) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  // Redirect unauthenticated users away from protected pages
-  if (!hasAccessToken && pathname.startsWith("/dashboard")) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
 
   if (isDev) {
     return NextResponse.next();

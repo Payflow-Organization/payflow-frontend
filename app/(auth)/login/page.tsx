@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useLogin, useMe } from "@/lib/hooks/use-auth";
 import { AxiosError } from "axios";
 
@@ -30,7 +29,6 @@ const formSchema = z.object({
 export default function Page() {
   const { mutate: login, isPending, error } = useLogin();
   const { data: user, isLoading: isCheckingAuth } = useMe();
-  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   // Consume the flag in the initialiser so it fires once and is immediately cleared.
   const [justLoggedOut] = useState(() => {
@@ -45,7 +43,6 @@ export default function Page() {
   });
 
   if (!justLoggedOut && !isCheckingAuth && user) {
-    router.replace("/dashboard");
     return null;
   }
 
@@ -63,6 +60,7 @@ export default function Page() {
       </CardHeader>
       <CardContent>
         <form
+          method="post"
           onSubmit={form.handleSubmit(onSubmit)}
           className="w-full flex flex-col gap-6"
         >
