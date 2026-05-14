@@ -1,7 +1,11 @@
 import axios from "axios";
 
+const isMock = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
+
 const client = axios.create({
-  baseURL: "/api/v1",
+  baseURL: isMock
+    ? "/api/v1"
+    : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1`,
   withCredentials: true,
 });
 

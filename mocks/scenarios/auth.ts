@@ -17,7 +17,7 @@ export const authHandlers = [
       email: faker.internet.email(),
       fullName: faker.person.fullName(),
     };
-    return HttpResponse.json({ email: mockSession.email });
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.post("/api/v1/auth/register", () => {
@@ -26,7 +26,7 @@ export const authHandlers = [
       email: faker.internet.email(),
       fullName: faker.person.fullName(),
     };
-    return HttpResponse.json({ email: mockSession.email });
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.post("/api/v1/auth/refresh", () =>
