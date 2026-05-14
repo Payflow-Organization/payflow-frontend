@@ -23,11 +23,13 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
     style-src 'self' 'nonce-${nonce}';
+    connect-src 'self' ${backendUrl};
     img-src 'self' blob: data:;
     font-src 'self';
     object-src 'none';
