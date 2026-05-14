@@ -92,8 +92,8 @@ function TransferFormInner({ initialWalletId }: { initialWalletId: string }) {
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
-      <div className="grid grid-cols-3 gap-8 mt-12">
-        <div className="col-span-2 flex flex-col gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-12">
+        <div className="lg:col-span-2 flex flex-col gap-6">
           {/* Source Account - dark green card */}
           <div className="rounded-[48px] bg-primary p-6 py-8 text-primary-foreground relative overflow-hidden">
             <p className="text-xs font-semibold uppercase tracking-widest opacity-70 mb-2">

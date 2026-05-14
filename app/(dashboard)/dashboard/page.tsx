@@ -61,7 +61,7 @@ function DashboardContent() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
           label="Wallet Balance"
           value={formatCurrency(activeWallet?.balance ?? 0, currency)}
@@ -82,8 +82,8 @@ function DashboardContent() {
         />
       </div>
 
-      <div className="flex gap-6 items-start">
-        <div className="flex-[2] flex flex-col gap-6">
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        <div className="w-full lg:flex-[2] flex flex-col gap-6">
           <AnalyticsChart
             walletId={resolvedWalletId}
             period="Monthly"
@@ -100,7 +100,7 @@ function DashboardContent() {
           />
         </div>
 
-        <div className="flex-1 flex flex-col gap-6">
+        <div className="w-full lg:flex-1 flex flex-col gap-6">
           <CurrentStatus
             currentSummary={currentSummary}
             prevSummary={prevSummary}

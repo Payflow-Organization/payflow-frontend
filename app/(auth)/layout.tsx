@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 
 export default function layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative min-h-screen bg-[#d3daea] w-full flex items-start justify-center pt-20">
+    <div className="relative min-h-screen bg-[#d3daea] w-full flex items-start justify-center px-4 pt-10 sm:pt-20 sm:px-0">
       <div className="flex flex-col items-center w-full gap-10">
         <div className="flex gap-2 items-center text-3xl font-semibold">
           <Landmark color="#00685F" size={30} />

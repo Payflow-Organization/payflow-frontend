@@ -19,10 +19,10 @@ function BankingContent() {
   const tab = useSearchParams().get("tab") ?? "deposit";
 
   return (
-    <div className="space-y-6 px-8">
+    <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Funds Management</h1>
       <Tabs defaultValue={tab} key={tab}>
-        <TabsList className="px-1 py-5 bg-secondary rounded-full w-max">
+        <TabsList className="px-1 py-5 bg-secondary rounded-full w-max max-w-full overflow-x-auto">
           <TabsTrigger value="deposit" className="py-4 px-8">
             Deposit
           </TabsTrigger>

@@ -6,12 +6,12 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { useWallets } from "@/lib/hooks/use-wallet";
-import { Bell, ChevronDown, CircleHelp, Search } from "lucide-react";
+import { Bell, ChevronDown, CircleHelp, Search, Menu } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { WalletSwitcher } from "../wallet/WalletSwitcher";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 
-function DashboardHeader() {
+function DashboardHeader({ onMenuToggle }: { onMenuToggle: () => void }) {
   const { data: wallets } = useWallets();
   const router = useRouter();
   const pathname = usePathname();
@@ -19,8 +19,13 @@ function DashboardHeader() {
   const active = wallets?.find((w) => w.id === walletId) ?? wallets?.[0];
 
   return (
-    <header className="flex justify-between items-center w-full px-8 py-2.5 min-h-16 border-b border-border">
-      <ul className="flex gap-6 items-center">
+    <header className="flex justify-between items-center w-full px-4 lg:px-8 py-2.5 min-h-16 border-b border-border">
+      <ul className="flex gap-3 lg:gap-6 items-center">
+        <li className="lg:hidden">
+          <Button variant="ghost" size="icon" onClick={onMenuToggle}>
+            <Menu size={20} />
+          </Button>
+        </li>
         <li>
           <WalletSwitcher
             trigger={
@@ -40,7 +45,7 @@ function DashboardHeader() {
             }
           />
         </li>
-        <li>
+        <li className="hidden sm:flex">
           <InputGroup className="gap-1 h-9 border-border border-2 rounded-4xl bg-[#FAFAFA]">
             <InputGroupAddon className="text-[#6B7280]">
               <Search size={16} strokeWidth={3} />

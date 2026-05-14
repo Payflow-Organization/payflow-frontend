@@ -94,7 +94,7 @@ export function MetricCards({
   const prefix = formatCardPrefix(dateRange, period);
 
   return (
-    <div className="grid grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8">
       {CARD_CONFIGS.map((cfg) => (
         <Card key={cfg.suffix} className={cfg.cardClass}>
           <CardContent className="pt-5 pb-4 px-5">

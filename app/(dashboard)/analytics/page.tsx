@@ -113,8 +113,8 @@ function AnalyticsContent() {
   };
 
   return (
-    <div className="min-h-screen p-8 space-y-8">
-      <div className="mb-8 flex justify-between items-center">
+    <div className="space-y-8">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
         <div>
           <h1 className="text-base font-semibold text-foreground">
             Transaction Analytics
@@ -124,8 +124,8 @@ function AnalyticsContent() {
           </p>
         </div>
 
-        <div className="flex items-center">
-          <div className="flex items-center gap-2 bg-background border border-border rounded-full px-2 py-1.5 shadow-sm">
+        <div className="flex items-center overflow-x-auto">
+          <div className="flex items-center gap-2 bg-background border border-border rounded-full px-2 py-1.5 shadow-sm shrink-0">
             <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
               <PopoverTrigger asChild>
                 <Button
