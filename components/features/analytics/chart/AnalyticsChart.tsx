@@ -148,8 +148,8 @@ export function AnalyticsChart({
 
   return (
     <Card>
-      <CardHeader className="pb-2 pt-5 px-15">
-        <div className="flex items-start justify-between">
+      <CardHeader className="pb-2 pt-5 px-4 sm:px-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <CardTitle className="text-base font-semibold">
               Transaction history
@@ -178,7 +178,7 @@ export function AnalyticsChart({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="px-10 pb-4">
+      <CardContent className="px-2 sm:px-6 pb-4">
         {isLoading ? (
           <Skeleton className="w-full rounded-lg" style={{ height }} />
         ) : (isCurrentError || isEmpty) ? (

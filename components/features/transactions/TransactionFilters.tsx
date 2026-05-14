@@ -76,7 +76,7 @@ export function TransactionFilters({
 
   return (
     <Card className="rounded-2xl border border-border">
-      <CardContent className="p-4 flex gap-10 items-end">
+      <CardContent className="p-4 flex flex-col sm:flex-row gap-4 sm:gap-10 sm:items-end">
         <div className="flex flex-col gap-1.5 flex-1">
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
             <ListFilter size={12} />

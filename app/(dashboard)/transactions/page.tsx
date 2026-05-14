@@ -52,8 +52,8 @@ function TransactionsContent() {
   }
 
   return (
-    <div className="space-y-6 px-5">
-      <div className="flex items-start justify-between">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Transaction History</h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-sm">

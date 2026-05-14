@@ -128,7 +128,8 @@ export function TransactionTable({
           </div>
         </div>
 
-        <Table className="[&_td]:px-6 [&_td]:py-4 [&_th]:px-6 [&_th]:py-4">
+        <div className="overflow-x-auto">
+        <Table className="[&_td]:px-6 [&_td]:py-4 [&_th]:px-6 [&_th]:py-4 min-w-[600px]">
           <TableHeader>
             <TableRow className="text-xs uppercase tracking-widest hover:bg-transparent [&_th]:text-muted/70 [&_th]:font-extrabold">
               <TableHead>Transaction ID</TableHead>
@@ -218,6 +219,7 @@ export function TransactionTable({
             )}
           </TableBody>
         </Table>
+        </div>
       </CardContent>
     </Card>
   );

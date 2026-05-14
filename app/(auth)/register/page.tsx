@@ -69,6 +69,7 @@ export default function Page() {
       </CardHeader>
       <CardContent>
         <form
+          method="post"
           onSubmit={form.handleSubmit(onSubmit)}
           className="w-full flex flex-col gap-6"
         >

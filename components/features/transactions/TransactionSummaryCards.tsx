@@ -46,7 +46,7 @@ export function TransactionSummaryCards({ walletId }: { walletId: string }) {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {Array.from({ length: 3 }).map((_, i) => (
           <Skeleton key={i} className="h-28 rounded-2xl" />
         ))}
@@ -55,7 +55,7 @@ export function TransactionSummaryCards({ walletId }: { walletId: string }) {
   }
 
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <SummaryCard
         label="Total Inflow"
         amount={inflowCents}

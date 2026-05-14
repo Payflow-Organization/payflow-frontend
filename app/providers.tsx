@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import MuiRegistry from "./MuiRegistry";
 
 if (
   process.env.NODE_ENV === "development" &&
@@ -44,6 +45,8 @@ export default function Providers({
   });
 
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <MuiRegistry>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </MuiRegistry>
   );
 }

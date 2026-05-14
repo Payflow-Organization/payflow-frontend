@@ -1,5 +1,5 @@
 "use client";
-import { ArrowRightLeft, Landmark, LogOut, PlusCircle, FlaskConical, Loader2 } from "lucide-react";
+import { ArrowRightLeft, Landmark, LogOut, PlusCircle, FlaskConical, Loader2, X } from "lucide-react";
 import { IconLayoutDashboard } from "@tabler/icons-react";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
@@ -29,7 +29,7 @@ const navLinks = [
   },
 ];
 
-function Sidebar() {
+function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { data: wallets } = useWallets();
@@ -40,7 +40,12 @@ function Sidebar() {
   const router = useRouter();
 
   return (
-    <nav className="max-w-64 w-full h-full border-r border-border py-6 flex flex-col">
+    <nav className="max-w-64 w-full h-full border-r border-border py-6 flex flex-col bg-background">
+      {onClose && (
+        <button onClick={onClose} className="lg:hidden self-end px-6 mb-2 text-muted-foreground">
+          <X size={20} />
+        </button>
+      )}
       <h1 className="text-primary font-bold text-lg px-8">Payflow</h1>
       <ul className="mt-10 flex flex-col gap-1 text-[#6B7280] [&>li]:h-12 [&>li]:flex [&>li]:items-center">
         {navLinks.map(({ href, icon, label }) => (

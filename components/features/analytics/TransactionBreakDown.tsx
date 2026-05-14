@@ -151,7 +151,7 @@ export function TransactionBreakdown({
   const rows = buildRows(spending, currency);
 
   return (
-    <Card className="px-8">
+    <Card>
       <CardHeader className="pb-0 pt-5 px-5">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-semibold">
@@ -183,8 +183,8 @@ export function TransactionBreakdown({
         </div>
       </CardHeader>
 
-      <CardContent className="px-5 pb-5 pt-2">
-        <Table className="table-fixed w-full">
+      <CardContent className="px-5 pb-5 pt-2 overflow-x-auto">
+        <Table className="table-fixed w-full min-w-[480px]">
           <TableHeader>
             <TableRow className="border-b border-border hover:bg-transparent [&_th]:text-muted/70 [&_th]:font-medium [&_th]:text-xs">
               <TableHead className="text-[10px] font-semibold text-muted-foreground tracking-wider uppercase pl-0 w-[28%]">
