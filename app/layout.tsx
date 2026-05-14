@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import Providers from "./providers";
@@ -11,11 +12,15 @@ export const metadata: Metadata = {
   description: "Digital wallet platform",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Reading headers here causes Next.js to propagate the x-nonce from
+  // middleware to all inline scripts it generates (RSC streaming, hydration).
+  await headers();
+
   return (
     <html lang="en" className={cn("h-full antialiased", manrope.variable)}>
       <body className="min-h-full flex flex-col">
