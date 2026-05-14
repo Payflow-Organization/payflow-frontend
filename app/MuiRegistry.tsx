@@ -5,15 +5,15 @@ import { useServerInsertedHTML } from "next/navigation";
 import { useState } from "react";
 
 export default function MuiRegistry({ children }: { children: React.ReactNode }) {
-  const [{ cache, flush }] = useState(() => {
+  const [registry] = useState(() => {
     const cache = createCache({ key: "mui" });
     cache.compat = true;
     const prevInsert = cache.insert;
-    let inserted: string[] = [];
+    let inserted: { name: string; isGlobal: boolean }[] = [];
     cache.insert = (...args) => {
-      const serialized = args[1];
+      const [selector, serialized] = args;
       if (cache.inserted[serialized.name] === undefined) {
-        inserted.push(serialized.name);
+        inserted.push({ name: serialized.name, isGlobal: !selector });
       }
       return prevInsert(...args);
     };
@@ -26,20 +26,42 @@ export default function MuiRegistry({ children }: { children: React.ReactNode })
   });
 
   useServerInsertedHTML(() => {
-    const names = flush();
-    if (names.length === 0) return null;
+    const inserted = registry.flush();
+    if (inserted.length === 0) return null;
+
     let styles = "";
-    for (const name of names) {
-      styles += cache.inserted[name];
+    let dataEmotion = registry.cache.key;
+    const globals: { name: string; style: string }[] = [];
+
+    for (const { name, isGlobal } of inserted) {
+      const style = registry.cache.inserted[name];
+      if (typeof style === "boolean") continue;
+      if (isGlobal) {
+        globals.push({ name, style });
+      } else {
+        styles += style;
+        dataEmotion += ` ${name}`;
+      }
     }
+
     return (
-      <style
-        key={cache.key}
-        data-emotion={`${cache.key} ${names.join(" ")}`}
-        dangerouslySetInnerHTML={{ __html: styles }}
-      />
+      <>
+        {globals.map(({ name, style }) => (
+          <style
+            key={name}
+            data-emotion={`${registry.cache.key}-global ${name}`}
+            dangerouslySetInnerHTML={{ __html: style }}
+          />
+        ))}
+        {styles && (
+          <style
+            data-emotion={dataEmotion}
+            dangerouslySetInnerHTML={{ __html: styles }}
+          />
+        )}
+      </>
     );
   });
 
-  return <CacheProvider value={cache}>{children}</CacheProvider>;
+  return <CacheProvider value={registry.cache}>{children}</CacheProvider>;
 }
