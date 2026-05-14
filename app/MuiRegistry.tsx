@@ -35,7 +35,7 @@ export default function MuiRegistry({ children }: { children: React.ReactNode })
 
     for (const { name, isGlobal } of inserted) {
       const style = registry.cache.inserted[name];
-      if (typeof style === "boolean") continue;
+      if (typeof style !== "string") continue;
       if (isGlobal) {
         globals.push({ name, style });
       } else {
