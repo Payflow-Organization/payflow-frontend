@@ -60,5 +60,5 @@ Set environment variables as defined in `.env.local.example`.
 
 ## Architecture
 
-See [payflow-backend](link) for full system architecture, distributed
+See [payflow-backend](https://github.com/Payflow-Organization/payflow-backend) for full system architecture, distributed
 systems patterns, and ADRs.  
