@@ -1,11 +1,7 @@
 import axios from "axios";
 
-const isMock = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
-
 const client = axios.create({
-  baseURL: isMock
-    ? "/api/v1"
-    : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1`,
+  baseURL: "/api/v1",
   withCredentials: true,
 });
 
@@ -18,17 +14,27 @@ client.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
-    const isRetryLoop = original.url === "/auth/refresh" || original.url === "/auth/login";
-    const isAuthPage = typeof window !== "undefined" &&
-      (window.location.pathname === "/login" || window.location.pathname === "/register");
+    const isRetryLoop =
+      original.url === "/auth/refresh" || original.url === "/auth/login";
+    const isAuthPage =
+      typeof window !== "undefined" &&
+      (window.location.pathname === "/login" ||
+        window.location.pathname === "/register");
 
-    if ((error.response?.status === 401 || error.response?.status === 403) && !original._retry && !isRetryLoop && !isAuthPage) {
+    if (
+      (error.response?.status === 401 || error.response?.status === 403) &&
+      !original._retry &&
+      !isRetryLoop &&
+      !isAuthPage
+    ) {
       original._retry = true;
       if (!refreshPromise) {
         refreshPromise = client
           .post("/auth/refresh")
           .then(() => undefined)
-          .finally(() => { refreshPromise = null; });
+          .finally(() => {
+            refreshPromise = null;
+          });
       }
       try {
         await refreshPromise;
