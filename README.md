@@ -61,9 +61,12 @@ Set environment variables as defined in `.env.local.example`.
 ## Known Issues
 
 - **Vercel proxy as single point of failure** — API calls route through 
-  Vercel rewrites to avoid CORS. The Railway backend URL stays private 
-  but Vercel becomes a single point of failure — an outage breaks API 
-  calls even if the backend is healthy. See 
+  a Next.js route handler (`app/api/v1/[...path]/route.ts`) to avoid 
+  CORS and keep the Railway backend URL private. Vercel is still a 
+  single point of failure — an outage breaks API calls even if the 
+  backend is healthy. This proxy layer is only needed while the frontend 
+  and backend live on separate domains; it can be removed once both are 
+  served from the same origin. See 
   [Runbook](docs/runbook.md#vercel-proxy-unavailable).
 
 - **Silent token refresh not retried on network failure** — if the 
