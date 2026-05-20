@@ -58,6 +58,18 @@ npm run dev
 
 Set environment variables as defined in `.env.local.example`.
 
+## Known Issues
+
+- **Vercel proxy as single point of failure** — API calls route through 
+  Vercel rewrites to avoid CORS. The Railway backend URL stays private 
+  but Vercel becomes a single point of failure — an outage breaks API 
+  calls even if the backend is healthy. See 
+  [Runbook](docs/runbook.md#vercel-proxy-unavailable).
+
+- **Silent token refresh not retried on network failure** — if the 
+  refresh call fails due to a network error the user is logged out 
+  immediately rather than retried.
+
 ## Architecture
 
 See [payflow-backend](https://github.com/Payflow-Organization/payflow-backend) for full system architecture, distributed
