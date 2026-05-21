@@ -3,6 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 export function proxy(request: NextRequest) {
   const isDev = process.env.NODE_ENV === "development";
 
+  if (!isDev && request.nextUrl.pathname.startsWith("/api")) {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
+    const url = request.url.replace(request.nextUrl.origin, backendUrl);
+    return NextResponse.rewrite(url);
+  }
+
   if (isDev) {
     return NextResponse.next();
   }
@@ -44,5 +50,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)", "/api/v1/:path*"],
 };
