@@ -8,11 +8,14 @@ async function proxyToBackend(request: NextRequest): Promise<NextResponse> {
     BACKEND_URL,
   ).toString();
 
+  const headers = new Headers(request.headers);
+  headers.delete("host");
+
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
 
   const backendResponse = await fetch(url, {
     method: request.method,
-    headers: request.headers,
+    headers,
     body: hasBody ? await request.arrayBuffer() : undefined,
   });
 
