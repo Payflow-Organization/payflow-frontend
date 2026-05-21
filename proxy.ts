@@ -1,12 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const isDev = process.env.NODE_ENV === "development";
 
   if (!isDev && request.nextUrl.pathname.startsWith("/api")) {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
     const url = request.url.replace(request.nextUrl.origin, backendUrl);
-    return NextResponse.rewrite(url);
+
+    const backendResponse = await fetch(url, {
+      method: request.method,
+      headers: request.headers,
+      body:
+        request.method !== "GET" && request.method !== "HEAD"
+          ? await request.arrayBuffer()
+          : undefined,
+    });
+
+    const response = new NextResponse(backendResponse.body, {
+      status: backendResponse.status,
+      headers: backendResponse.headers,
+    });
+
+    return response;
   }
 
   if (isDev) {
