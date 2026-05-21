@@ -5,8 +5,7 @@ export async function proxy(request: NextRequest) {
 
   if (!isDev && request.nextUrl.pathname.startsWith("/api")) {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
-    const url = request.url.replace(request.nextUrl.origin, backendUrl);
-
+    const url = backendUrl + request.nextUrl.pathname + request.nextUrl.search;
     const backendResponse = await fetch(url, {
       method: request.method,
       headers: request.headers,
