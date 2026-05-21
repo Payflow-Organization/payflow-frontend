@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND = process.env.BACKEND_URL!;
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL!;
 
 async function proxy(req: NextRequest): Promise<NextResponse> {
   const path = req.nextUrl.pathname;
