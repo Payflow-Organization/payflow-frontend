@@ -56,6 +56,12 @@ npm install
 npm run dev
 ```
 
+## Deployment
+
+Deployed on Vercel. Automatic deploys on every merge to `main`. 
+Set `NEXT_PUBLIC_BACKEND_URL` as a Vercel environment variable pointing 
+to the Railway backend.
+
 Set environment variables as defined in `.env.local.example`.
 
 ## Known Issues
