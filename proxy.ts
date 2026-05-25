@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
+const isDev = process.env.NODE_ENV === "development";
 
 async function proxyToBackend(request: NextRequest): Promise<NextResponse> {
   const url = new URL(
@@ -8,37 +9,58 @@ async function proxyToBackend(request: NextRequest): Promise<NextResponse> {
     BACKEND_URL,
   ).toString();
 
-  const headers = new Headers(request.headers);
+const headers = new Headers(request.headers);
   headers.delete("host");
 
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
 
-  const backendResponse = await fetch(url, {
-    method: request.method,
-    headers,
-    body: hasBody ? await request.arrayBuffer() : undefined,
+  let backendResponse: Response;
+  try {
+    backendResponse = await fetch(url, {
+      method: request.method,
+      headers,
+      body: hasBody ? await request.arrayBuffer() : undefined,
+      signal: AbortSignal.timeout(30000),
+    });
+  } catch (err) {
+    const isTimeout = err instanceof DOMException && err.name === "TimeoutError";
+    return new NextResponse(isTimeout ? "Gateway timeout" : "Bad gateway", {
+      status: isTimeout ? 504 : 502,
+    });
+  }
+
+  // Exclude Set-Cookie from the constructor — passing it through Headers joins
+  // multiple values with ", " which corrupts them. Append individually below.
+  const responseHeaders = new Headers();
+  backendResponse.headers.forEach((value, key) => {
+    if (key.toLowerCase() !== "set-cookie") {
+      responseHeaders.set(key, value);
+    }
   });
 
   const response = new NextResponse(backendResponse.body, {
     status: backendResponse.status,
     statusText: backendResponse.statusText,
-    headers: backendResponse.headers,
+    headers: responseHeaders,
   });
 
   backendResponse.headers.getSetCookie().forEach((cookie) => {
-    response.headers.append("Set-Cookie", cookie);
+    let c = cookie.replace(/;\s*domain=[^;]*/i, "");
+    // http://localhost doesn't accept Secure cookies — strip the flag in dev.
+    if (isDev) c = c.replace(/;\s*secure/i, "");
+    response.headers.append("Set-Cookie", c);
   });
 
   return response;
 }
 
-export async function proxy(request: NextRequest): Promise<NextResponse> {
-  const isDev = process.env.NODE_ENV === "development";
-
-  if (!isDev && request.nextUrl.pathname.startsWith("/api")) {
+export async function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith("/api")) {
     return proxyToBackend(request);
   }
 
+  // Skip strict CSP in dev — nonce + unsafe-inline can't coexist (browsers
+  // ignore unsafe-inline when a nonce is present), which breaks the dev overlay.
   if (isDev) {
     return NextResponse.next();
   }
