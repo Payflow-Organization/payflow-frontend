@@ -9,7 +9,7 @@ async function proxyToBackend(request: NextRequest): Promise<NextResponse> {
     BACKEND_URL,
   ).toString();
 
-const headers = new Headers(request.headers);
+  const headers = new Headers(request.headers);
   headers.delete("host");
 
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
@@ -23,7 +23,8 @@ const headers = new Headers(request.headers);
       signal: AbortSignal.timeout(30000),
     });
   } catch (err) {
-    const isTimeout = err instanceof DOMException && err.name === "TimeoutError";
+    const isTimeout =
+      err instanceof DOMException && err.name === "TimeoutError";
     return new NextResponse(isTimeout ? "Gateway timeout" : "Bad gateway", {
       status: isTimeout ? 504 : 502,
     });
@@ -33,7 +34,11 @@ const headers = new Headers(request.headers);
   // multiple values with ", " which corrupts them. Append individually below.
   const responseHeaders = new Headers();
   backendResponse.headers.forEach((value, key) => {
-    if (key.toLowerCase() !== "set-cookie") {
+    if (
+      key.toLowerCase() !== "set-cookie" &&
+      key.toLowerCase() !== "content-encoding" &&
+      key.toLowerCase() !== "transfer-encoding"
+    ) {
       responseHeaders.set(key, value);
     }
   });
